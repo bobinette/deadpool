@@ -1,0 +1,46 @@
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.box = "ubuntu/trusty64"
+
+  config.vm.define "deadpool" do |deadpool|
+    deadpool.vm.hostname = "deadpool"
+    deadpool.vm.network "private_network", ip:"192.168.50.20"
+
+    deadpool.vm.provider :virtualbox do |vb|
+      vb.memory = 2048
+      vb.cpus = 2
+    end
+
+    deadpool.vm.synced_folder "~/Documents/Prog/deadpool/deadpool", "/home/vagrant/go/src/github.com/bobinette/deadpool"
+
+    # Provision
+    deadpool.vm.provision "ansible" do |ansible|
+      # Provision playbook provisions on all
+      ansible.groups = {
+        "all" => ["deadpool"]
+      }
+      ansible.extra_vars = {
+        deploy_user: "vagrant"
+      }
+      ansible.playbook = "provision.yml"
+    end
+  end
+
+  # Only one node. For cluster, check out https://github.com/bcantoni/vagrant-cassandra
+  config.vm.define "cassandra" do |cassandra|
+    cassandra.vm.hostname = "cassandra"
+    cassandra.vm.network "private_network", ip:"192.168.50.21"
+
+    cassandra.vm.provider :virtualbox do |vb|
+      vb.memory = 4096
+      vb.cpus = 2
+    end
+  end
+
+  if Vagrant.has_plugin?("deadpool-cachier")
+    config.cache.scope = :box
+  end
+
+end

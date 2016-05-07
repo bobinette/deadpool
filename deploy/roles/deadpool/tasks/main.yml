@@ -1,0 +1,61 @@
+- name: Install packages
+  apt: name={{ item }} update_cache=yes
+  with_items:
+    - bison
+    - git
+    - unzip
+  become: yes
+
+- stat: path=/home/{{ deploy_user }}/.gvm
+  register: gvm_stat
+
+- name: Install Golang gvm
+  shell: curl -s -S -L https://raw.github.com/moovweb/gvm/master/binscripts/gvm-installer | bash
+    executable="/bin/bash"
+  ignore_errors: true
+  when: gvm_stat.stat.exists == False
+
+- name: Install Golang version
+  shell: . /home/{{ deploy_user }}/.gvm/scripts/gvm && gvm install go{{ go_version }} --binary
+    executable="/bin/bash"
+  ignore_errors: true
+  notify: start gvm
+  when: gvm_stat.stat.exists == False
+
+- name: Change go directory owner
+  file: path={{ go_path }} owner={{ deploy_user }} group={{ deploy_user }} state=directory recurse=yes
+  become: yes
+
+- name: Add go to the .bashrc
+  lineinfile:
+    dest=/home/{{ deploy_user }}/.bashrc
+    line="source \"/home/{{ deploy_user }}/.gvm/scripts/gvm\" && gvm use go1.6.1 && export GOPATH={{ go_path }} && export PATH=$PATH:$GOROOT/bin:$GOPATH/bin"
+    regexp="^source \"/home/{{ deploy_user }}/.gvm/scripts/gvm\""
+    owner=vagrant
+    state=present
+    insertafter=EOF
+    create=True
+
+- name: Create protoc directory
+  file: path={{ protoc_path }} owner={{ deploy_user }} group={{ deploy_user }} state=directory
+
+- name: Install protoc
+  unarchive: src={{ protoc_url }} dest={{ protoc_path }} copy=no
+
+- name: Install protobuf and protoc-gen-go
+  shell: source "/home/{{ deploy_user }}/.gvm/scripts/gvm" && gvm use go1.6.1 && export GOPATH={{ go_path }} && go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+    executable="/bin/bash"
+
+- name: Add protoc to the .bashrc
+  lineinfile:
+    dest=/home/{{ deploy_user }}/.bashrc
+    line="export PATH=$PATH:\$HOME/protoc"
+    regexp="^export PATH=$PATH:\$HOME/protoc$"
+    owner=vagrant
+    state=present
+    insertafter=EOF
+    create=True
+
+- name: Install deadpool dependencies
+  shell: source "/home/{{ deploy_user }}/.gvm/scripts/gvm" && gvm use go1.6.1 && export GOPATH={{ go_path }} && cd {{ go_path }}/src/github.com/bobinette/deadpool && make install
+    executable="/bin/bash"

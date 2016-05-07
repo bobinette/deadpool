@@ -1,0 +1,4 @@
+# file: group_vars/all
+---
+deploy_user: vagrant
+env: development

@@ -1,0 +1,5 @@
+---
+go_version: 1.6.1
+go_path: /home/{{ deploy_user }}/go
+protoc_url: https://github.com/google/protobuf/releases/download/v3.0.0-beta-2/protoc-3.0.0-beta-2-linux-x86_64.zip
+protoc_path: /home/{{ deploy_user }}/protoc

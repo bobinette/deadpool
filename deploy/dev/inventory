@@ -1,0 +1,12 @@
+deadpool ansible_ssh_user=vagrant ansible_ssh_host=192.168.50.22
+cassandra ansible_ssh_user=vagrant ansible_ssh_host=192.168.50.21
+
+[all]
+deadpool
+cassandra
+
+[deadpool]
+deadpool
+
+[cassandra]
+cassandra
