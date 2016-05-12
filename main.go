@@ -1,11 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"net"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/codegangsta/cli"
 )
@@ -13,30 +11,6 @@ import (
 const (
 	port = ":17000"
 )
-
-func startServer(game string) error {
-	s, err := NewServer(game)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Starting server for game %s...", game)
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	// Handle CTRL-C
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-quit
-		s.Stop()
-	}()
-
-	log.Println("Listening...")
-	return s.Serve(lis)
-}
 
 func main() {
 	app := cli.NewApp()
@@ -49,11 +23,46 @@ func main() {
 			Aliases: []string{"u"},
 			Usage:   "start a deadpool server",
 			Action: func(c *cli.Context) error {
-				err := startServer(c.Args().First())
+				err := Up(c.Args().First())
 				if err != nil {
 					log.Println(err)
 				}
 				return err
+			},
+		},
+		{
+			Name:    "new",
+			Aliases: []string{"new"},
+			Usage:   "create a new deadpool game folder",
+			Action: func(c *cli.Context) error {
+				if c.NArg() == 0 {
+					err := fmt.Errorf("Name argument is mandatory")
+					log.Println(err)
+					return err
+				}
+				game := c.Args().First()
+				gen := NewGenerator()
+				err := gen.Generate(game)
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Printf("%s: game successfully initialized", game)
+					log.Println("Have fun with your new game!!")
+					log.Println("Don't forget to 'protoc' the game")
+				}
+				return err
+			},
+		},
+		{
+			Name:    "list",
+			Aliases: []string{"list"},
+			Usage:   "list the available games",
+			Action: func(c *cli.Context) error {
+				lister := NewLister()
+				for _, game := range lister.List() {
+					log.Println(game)
+				}
+				return nil
 			},
 		},
 	}

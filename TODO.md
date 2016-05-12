@@ -24,13 +24,16 @@ Not everything present in this TODO is actually useful, but I put it because thi
     + Clients
         * Go
         * Python
-    + Server
 - Interface for game replay
     + React
 
 **AND ALL THE CLIENTS!**
 
 ## Done
+
+### 12-05-2016
+- Code generation
+    + Server
 
 ### 08-05-2016
 - Architecture
