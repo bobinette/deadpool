@@ -19,18 +19,6 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:    "up",
-			Aliases: []string{"u"},
-			Usage:   "start a deadpool server",
-			Action: func(c *cli.Context) error {
-				err := Up(c.Args().First())
-				if err != nil {
-					log.Println(err)
-				}
-				return err
-			},
-		},
-		{
 			Name:    "new",
 			Aliases: []string{"new"},
 			Usage:   "create a new deadpool game folder",

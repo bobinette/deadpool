@@ -26,6 +26,7 @@ Not everything present in this TODO is actually useful, but I put it because thi
         * Python
 - Interface for game replay
     + React
+- Doc
 
 **AND ALL THE CLIENTS!**
 

@@ -14,6 +14,11 @@ It has these top-level messages:
 	ConnectReply
 	LeaveReply
 	Notification
+	GameEvent
+	GameStatus
+	JoinEvent
+	LeaveEvent
+	ServerStatus
 	PlayRequest
 	PlayReply
 */
@@ -22,6 +27,7 @@ package protos
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import google_protobuf "github.com/golang/protobuf/ptypes/timestamp"
 
 import (
 	context "golang.org/x/net/context"
@@ -80,23 +86,299 @@ func (*LeaveReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{
 
 // ---- Notification
 type Notification struct {
-	// Max number of players
-	MaxPlayers int32 `protobuf:"varint,1,opt,name=max_players,json=maxPlayers" json:"max_players,omitempty"`
-	NPlayers   int32 `protobuf:"varint,2,opt,name=n_players,json=nPlayers" json:"n_players,omitempty"`
-	// Name of the player joind the world
-	Joined string `protobuf:"bytes,3,opt,name=joined" json:"joined,omitempty"`
-	// Name of the player leaving the world
-	Left string `protobuf:"bytes,4,opt,name=left" json:"left,omitempty"`
-	// Game specific fields
-	Message  string `protobuf:"bytes,5,opt,name=message" json:"message,omitempty"`
-	Author   string `protobuf:"bytes,6,opt,name=author" json:"author,omitempty"`
-	AuthorId int32  `protobuf:"varint,7,opt,name=author_id,json=authorId" json:"author_id,omitempty"`
+	// Types that are valid to be assigned to Event:
+	//	*Notification_GameEvent
+	//	*Notification_GameStatus
+	//	*Notification_Join
+	//	*Notification_Leave
+	//	*Notification_ServerStatus
+	Event isNotification_Event `protobuf_oneof:"event"`
 }
 
 func (m *Notification) Reset()                    { *m = Notification{} }
 func (m *Notification) String() string            { return proto.CompactTextString(m) }
 func (*Notification) ProtoMessage()               {}
 func (*Notification) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+type isNotification_Event interface {
+	isNotification_Event()
+}
+
+type Notification_GameEvent struct {
+	GameEvent *GameEvent `protobuf:"bytes,1,opt,name=game_event,json=gameEvent,oneof"`
+}
+type Notification_GameStatus struct {
+	GameStatus *GameStatus `protobuf:"bytes,2,opt,name=game_status,json=gameStatus,oneof"`
+}
+type Notification_Join struct {
+	Join *JoinEvent `protobuf:"bytes,3,opt,name=join,oneof"`
+}
+type Notification_Leave struct {
+	Leave *LeaveEvent `protobuf:"bytes,4,opt,name=leave,oneof"`
+}
+type Notification_ServerStatus struct {
+	ServerStatus *ServerStatus `protobuf:"bytes,5,opt,name=server_status,json=serverStatus,oneof"`
+}
+
+func (*Notification_GameEvent) isNotification_Event()    {}
+func (*Notification_GameStatus) isNotification_Event()   {}
+func (*Notification_Join) isNotification_Event()         {}
+func (*Notification_Leave) isNotification_Event()        {}
+func (*Notification_ServerStatus) isNotification_Event() {}
+
+func (m *Notification) GetEvent() isNotification_Event {
+	if m != nil {
+		return m.Event
+	}
+	return nil
+}
+
+func (m *Notification) GetGameEvent() *GameEvent {
+	if x, ok := m.GetEvent().(*Notification_GameEvent); ok {
+		return x.GameEvent
+	}
+	return nil
+}
+
+func (m *Notification) GetGameStatus() *GameStatus {
+	if x, ok := m.GetEvent().(*Notification_GameStatus); ok {
+		return x.GameStatus
+	}
+	return nil
+}
+
+func (m *Notification) GetJoin() *JoinEvent {
+	if x, ok := m.GetEvent().(*Notification_Join); ok {
+		return x.Join
+	}
+	return nil
+}
+
+func (m *Notification) GetLeave() *LeaveEvent {
+	if x, ok := m.GetEvent().(*Notification_Leave); ok {
+		return x.Leave
+	}
+	return nil
+}
+
+func (m *Notification) GetServerStatus() *ServerStatus {
+	if x, ok := m.GetEvent().(*Notification_ServerStatus); ok {
+		return x.ServerStatus
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Notification) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Notification_OneofMarshaler, _Notification_OneofUnmarshaler, _Notification_OneofSizer, []interface{}{
+		(*Notification_GameEvent)(nil),
+		(*Notification_GameStatus)(nil),
+		(*Notification_Join)(nil),
+		(*Notification_Leave)(nil),
+		(*Notification_ServerStatus)(nil),
+	}
+}
+
+func _Notification_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Notification)
+	// event
+	switch x := m.Event.(type) {
+	case *Notification_GameEvent:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.GameEvent); err != nil {
+			return err
+		}
+	case *Notification_GameStatus:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.GameStatus); err != nil {
+			return err
+		}
+	case *Notification_Join:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Join); err != nil {
+			return err
+		}
+	case *Notification_Leave:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Leave); err != nil {
+			return err
+		}
+	case *Notification_ServerStatus:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.ServerStatus); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Notification.Event has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Notification_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Notification)
+	switch tag {
+	case 1: // event.game_event
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(GameEvent)
+		err := b.DecodeMessage(msg)
+		m.Event = &Notification_GameEvent{msg}
+		return true, err
+	case 2: // event.game_status
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(GameStatus)
+		err := b.DecodeMessage(msg)
+		m.Event = &Notification_GameStatus{msg}
+		return true, err
+	case 3: // event.join
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(JoinEvent)
+		err := b.DecodeMessage(msg)
+		m.Event = &Notification_Join{msg}
+		return true, err
+	case 4: // event.leave
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(LeaveEvent)
+		err := b.DecodeMessage(msg)
+		m.Event = &Notification_Leave{msg}
+		return true, err
+	case 5: // event.server_status
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(ServerStatus)
+		err := b.DecodeMessage(msg)
+		m.Event = &Notification_ServerStatus{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Notification_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Notification)
+	// event
+	switch x := m.Event.(type) {
+	case *Notification_GameEvent:
+		s := proto.Size(x.GameEvent)
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Notification_GameStatus:
+		s := proto.Size(x.GameStatus)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Notification_Join:
+		s := proto.Size(x.Join)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Notification_Leave:
+		s := proto.Size(x.Leave)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Notification_ServerStatus:
+		s := proto.Size(x.ServerStatus)
+		n += proto.SizeVarint(5<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type GameEvent struct {
+	Message   string                     `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
+	Author    string                     `protobuf:"bytes,2,opt,name=author" json:"author,omitempty"`
+	Timestamp *google_protobuf.Timestamp `protobuf:"bytes,3,opt,name=timestamp" json:"timestamp,omitempty"`
+}
+
+func (m *GameEvent) Reset()                    { *m = GameEvent{} }
+func (m *GameEvent) String() string            { return proto.CompactTextString(m) }
+func (*GameEvent) ProtoMessage()               {}
+func (*GameEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+
+func (m *GameEvent) GetTimestamp() *google_protobuf.Timestamp {
+	if m != nil {
+		return m.Timestamp
+	}
+	return nil
+}
+
+type GameStatus struct {
+	// The history of the conversation
+	Chat []*GameEvent `protobuf:"bytes,1,rep,name=chat" json:"chat,omitempty"`
+	// The id of the player that is allowed to talk now
+	CurrentPlayer int32 `protobuf:"varint,2,opt,name=currentPlayer" json:"currentPlayer,omitempty"`
+}
+
+func (m *GameStatus) Reset()                    { *m = GameStatus{} }
+func (m *GameStatus) String() string            { return proto.CompactTextString(m) }
+func (*GameStatus) ProtoMessage()               {}
+func (*GameStatus) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+func (m *GameStatus) GetChat() []*GameEvent {
+	if m != nil {
+		return m.Chat
+	}
+	return nil
+}
+
+type JoinEvent struct {
+	PlayerName string        `protobuf:"bytes,1,opt,name=player_name,json=playerName" json:"player_name,omitempty"`
+	Status     *ServerStatus `protobuf:"bytes,2,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *JoinEvent) Reset()                    { *m = JoinEvent{} }
+func (m *JoinEvent) String() string            { return proto.CompactTextString(m) }
+func (*JoinEvent) ProtoMessage()               {}
+func (*JoinEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+
+func (m *JoinEvent) GetStatus() *ServerStatus {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type LeaveEvent struct {
+	PlayerName string        `protobuf:"bytes,1,opt,name=player_name,json=playerName" json:"player_name,omitempty"`
+	Status     *ServerStatus `protobuf:"bytes,2,opt,name=status" json:"status,omitempty"`
+}
+
+func (m *LeaveEvent) Reset()                    { *m = LeaveEvent{} }
+func (m *LeaveEvent) String() string            { return proto.CompactTextString(m) }
+func (*LeaveEvent) ProtoMessage()               {}
+func (*LeaveEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+
+func (m *LeaveEvent) GetStatus() *ServerStatus {
+	if m != nil {
+		return m.Status
+	}
+	return nil
+}
+
+type ServerStatus struct {
+	Max int32 `protobuf:"varint,1,opt,name=max" json:"max,omitempty"`
+	N   int32 `protobuf:"varint,2,opt,name=n" json:"n,omitempty"`
+}
+
+func (m *ServerStatus) Reset()                    { *m = ServerStatus{} }
+func (m *ServerStatus) String() string            { return proto.CompactTextString(m) }
+func (*ServerStatus) ProtoMessage()               {}
+func (*ServerStatus) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
 
 // ---- Play
 type PlayRequest struct {
@@ -109,7 +391,7 @@ type PlayRequest struct {
 func (m *PlayRequest) Reset()                    { *m = PlayRequest{} }
 func (m *PlayRequest) String() string            { return proto.CompactTextString(m) }
 func (*PlayRequest) ProtoMessage()               {}
-func (*PlayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (*PlayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
 
 type PlayReply struct {
 	// Accepted status
@@ -121,7 +403,7 @@ type PlayReply struct {
 func (m *PlayReply) Reset()                    { *m = PlayReply{} }
 func (m *PlayReply) String() string            { return proto.CompactTextString(m) }
 func (*PlayReply) ProtoMessage()               {}
-func (*PlayReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*PlayReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
 
 func init() {
 	proto.RegisterType((*IdMessage)(nil), "helloworld.IdMessage")
@@ -129,6 +411,11 @@ func init() {
 	proto.RegisterType((*ConnectReply)(nil), "helloworld.ConnectReply")
 	proto.RegisterType((*LeaveReply)(nil), "helloworld.LeaveReply")
 	proto.RegisterType((*Notification)(nil), "helloworld.Notification")
+	proto.RegisterType((*GameEvent)(nil), "helloworld.GameEvent")
+	proto.RegisterType((*GameStatus)(nil), "helloworld.GameStatus")
+	proto.RegisterType((*JoinEvent)(nil), "helloworld.JoinEvent")
+	proto.RegisterType((*LeaveEvent)(nil), "helloworld.LeaveEvent")
+	proto.RegisterType((*ServerStatus)(nil), "helloworld.ServerStatus")
 	proto.RegisterType((*PlayRequest)(nil), "helloworld.PlayRequest")
 	proto.RegisterType((*PlayReply)(nil), "helloworld.PlayReply")
 }
@@ -151,7 +438,7 @@ type HelloWorldClient interface {
 	// Subscribe to server-side stream
 	Subscribe(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (HelloWorld_SubscribeClient, error)
 	// Request a notification from the server
-	GetNotification(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*Notification, error)
+	GetGameStatus(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*GameStatus, error)
 	// Let the server know the client's move for the game
 	Play(ctx context.Context, in *PlayRequest, opts ...grpc.CallOption) (*PlayReply, error)
 }
@@ -214,9 +501,9 @@ func (x *helloWorldSubscribeClient) Recv() (*Notification, error) {
 	return m, nil
 }
 
-func (c *helloWorldClient) GetNotification(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*Notification, error) {
-	out := new(Notification)
-	err := grpc.Invoke(ctx, "/helloworld.HelloWorld/GetNotification", in, out, c.cc, opts...)
+func (c *helloWorldClient) GetGameStatus(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*GameStatus, error) {
+	out := new(GameStatus)
+	err := grpc.Invoke(ctx, "/helloworld.HelloWorld/GetGameStatus", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +529,7 @@ type HelloWorldServer interface {
 	// Subscribe to server-side stream
 	Subscribe(*IdMessage, HelloWorld_SubscribeServer) error
 	// Request a notification from the server
-	GetNotification(context.Context, *IdMessage) (*Notification, error)
+	GetGameStatus(context.Context, *IdMessage) (*GameStatus, error)
 	// Let the server know the client's move for the game
 	Play(context.Context, *PlayRequest) (*PlayReply, error)
 }
@@ -308,20 +595,20 @@ func (x *helloWorldSubscribeServer) Send(m *Notification) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _HelloWorld_GetNotification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _HelloWorld_GetGameStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IdMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HelloWorldServer).GetNotification(ctx, in)
+		return srv.(HelloWorldServer).GetGameStatus(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/helloworld.HelloWorld/GetNotification",
+		FullMethod: "/helloworld.HelloWorld/GetGameStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HelloWorldServer).GetNotification(ctx, req.(*IdMessage))
+		return srv.(HelloWorldServer).GetGameStatus(ctx, req.(*IdMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -357,8 +644,8 @@ var _HelloWorld_serviceDesc = grpc.ServiceDesc{
 			Handler:    _HelloWorld_Leave_Handler,
 		},
 		{
-			MethodName: "GetNotification",
-			Handler:    _HelloWorld_GetNotification_Handler,
+			MethodName: "GetGameStatus",
+			Handler:    _HelloWorld_GetGameStatus_Handler,
 		},
 		{
 			MethodName: "Play",
@@ -375,31 +662,42 @@ var _HelloWorld_serviceDesc = grpc.ServiceDesc{
 }
 
 var fileDescriptor0 = []byte{
-	// 401 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x94, 0x53, 0x4b, 0x4f, 0xe3, 0x30,
-	0x10, 0x6e, 0xd2, 0x57, 0x32, 0xad, 0xba, 0x2b, 0x4b, 0xdb, 0x8d, 0xb2, 0xd2, 0x6e, 0x65, 0xed,
-	0x81, 0x53, 0x85, 0xe0, 0x00, 0x27, 0xc4, 0x4b, 0x82, 0x4a, 0x80, 0x50, 0x38, 0x20, 0x71, 0xa9,
-	0xdc, 0xc4, 0xa5, 0x41, 0x69, 0x1c, 0x12, 0x17, 0xe8, 0x2f, 0x84, 0x9f, 0x45, 0x6c, 0xa7, 0xa9,
-	0x03, 0xf4, 0xc0, 0x29, 0x33, 0xdf, 0xcc, 0x7c, 0xf3, 0xf8, 0x1c, 0xf8, 0x39, 0xa3, 0x51, 0xc4,
-	0x9e, 0x59, 0x1a, 0x05, 0xc3, 0x24, 0x65, 0x9c, 0x21, 0x58, 0x23, 0xf8, 0x0f, 0xd8, 0xa3, 0xe0,
-	0x92, 0x66, 0x19, 0xb9, 0xa7, 0xa8, 0x07, 0x66, 0x18, 0x38, 0xc6, 0xc0, 0xd8, 0x6a, 0x7a, 0xb9,
-	0x85, 0xff, 0x43, 0xef, 0x84, 0xc5, 0x31, 0xf5, 0xb9, 0x47, 0x1f, 0x17, 0x34, 0xe3, 0x08, 0x41,
-	0x23, 0x26, 0x73, 0x2a, 0x73, 0x6c, 0x4f, 0xda, 0xf8, 0x2f, 0x74, 0xcb, 0xac, 0x24, 0x5a, 0x7e,
-	0x62, 0x19, 0x00, 0x5c, 0x50, 0xf2, 0x44, 0x55, 0x34, 0x67, 0xe0, 0x61, 0xc1, 0x50, 0xf7, 0xa4,
-	0x8d, 0x5f, 0x0d, 0xe8, 0x5e, 0x31, 0x1e, 0x4e, 0x43, 0x9f, 0xf0, 0x90, 0xc5, 0xe8, 0x1f, 0x74,
-	0xe6, 0xe4, 0x65, 0x9c, 0x44, 0x64, 0x49, 0xd3, 0xac, 0xe0, 0x82, 0x1c, 0xba, 0x56, 0x08, 0xca,
-	0xc7, 0x8e, 0xcb, 0xb0, 0x29, 0xc3, 0x56, 0xbc, 0x0a, 0xf6, 0xa1, 0xf5, 0xc0, 0xc2, 0x98, 0x06,
-	0x4e, 0x5d, 0x8e, 0x59, 0x78, 0xa2, 0x75, 0x44, 0xa7, 0xdc, 0x69, 0xa8, 0xe1, 0x85, 0x8d, 0x1c,
-	0x68, 0xcf, 0xd5, 0xf6, 0x4e, 0x53, 0xc2, 0x2b, 0x57, 0xb0, 0x90, 0x05, 0x9f, 0xb1, 0xd4, 0x69,
-	0x29, 0x16, 0xe5, 0x89, 0xd6, 0xca, 0x1a, 0xe7, 0x5b, 0xb6, 0x55, 0x6b, 0x05, 0x8c, 0x02, 0xbc,
-	0x07, 0x1d, 0x31, 0xc5, 0xea, 0x5c, 0x1f, 0x4e, 0xa1, 0x77, 0x33, 0x2b, 0xdd, 0xf0, 0x11, 0xd8,
-	0xaa, 0x50, 0xdc, 0xc8, 0x05, 0x8b, 0xf8, 0x3e, 0x4d, 0x38, 0x55, 0xc5, 0x96, 0x57, 0xfa, 0x9b,
-	0x29, 0x76, 0xde, 0x4c, 0x80, 0x73, 0xa1, 0xec, 0xad, 0x50, 0x16, 0x1d, 0x40, 0xbb, 0x90, 0x05,
-	0xb9, 0x43, 0xed, 0x0d, 0x54, 0x15, 0x75, 0x7f, 0xe9, 0xb1, 0xf2, 0x29, 0xe0, 0x1a, 0xda, 0x87,
-	0xa6, 0x94, 0x0d, 0x7d, 0x9d, 0xe1, 0xf6, 0x75, 0x78, 0x2d, 0x70, 0x5e, 0x79, 0x08, 0xf6, 0xcd,
-	0x62, 0x92, 0xf9, 0x69, 0x38, 0xd9, 0x58, 0xed, 0xe8, 0xb0, 0xae, 0x3d, 0xae, 0x6d, 0x1b, 0xe8,
-	0x14, 0x7e, 0x9c, 0x51, 0x5e, 0x79, 0x12, 0xdf, 0xe7, 0xc9, 0x37, 0x68, 0x88, 0x9b, 0xa2, 0xdf,
-	0x7a, 0x8e, 0x26, 0x4f, 0x75, 0xf7, 0xf2, 0xfc, 0xb8, 0x76, 0x6c, 0xdd, 0xb5, 0xe4, 0xaf, 0x92,
-	0x4d, 0xd4, 0x77, 0xf7, 0x3d, 0x00, 0x00, 0xff, 0xff, 0xb4, 0xdc, 0xca, 0xac, 0x46, 0x03, 0x00,
-	0x00,
+	// 592 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xb4, 0x54, 0xdb, 0x6a, 0xdb, 0x4c,
+	0x10, 0xf6, 0x49, 0xb1, 0x35, 0xb6, 0x43, 0x18, 0xf8, 0xf3, 0x0b, 0x15, 0x9a, 0xb0, 0xe4, 0xa2,
+	0xa5, 0xa0, 0x84, 0x14, 0x7a, 0xb8, 0xe9, 0x21, 0xa5, 0x24, 0x2d, 0x6d, 0x28, 0x72, 0xa1, 0x50,
+	0x68, 0x8d, 0x2c, 0x6f, 0x6c, 0x15, 0x59, 0x72, 0xa5, 0x95, 0xd3, 0xbc, 0x51, 0x1f, 0xa4, 0x0f,
+	0xd6, 0xd5, 0xac, 0x24, 0xaf, 0xe2, 0x1a, 0x7a, 0xd3, 0x2b, 0xed, 0xcc, 0x7c, 0xdf, 0xee, 0x7c,
+	0x73, 0x10, 0xec, 0xcd, 0x79, 0x18, 0xc6, 0xd7, 0x71, 0x12, 0x4e, 0x9d, 0x65, 0x12, 0x8b, 0x18,
+	0x61, 0xed, 0xb1, 0x0f, 0x66, 0x71, 0x3c, 0x0b, 0xf9, 0x31, 0x45, 0x26, 0xd9, 0xd5, 0xb1, 0x08,
+	0x16, 0x3c, 0x15, 0xde, 0x62, 0xa9, 0xc0, 0xec, 0x0e, 0x98, 0x6f, 0xa6, 0xef, 0x79, 0x9a, 0x7a,
+	0x33, 0x8e, 0xbb, 0xd0, 0x0a, 0xa6, 0x56, 0xf3, 0xb0, 0x79, 0xcf, 0x70, 0xe5, 0x89, 0x1d, 0xc1,
+	0xee, 0xab, 0x38, 0x8a, 0xb8, 0x2f, 0x5c, 0xfe, 0x3d, 0x93, 0x3c, 0x44, 0xe8, 0x44, 0xde, 0x82,
+	0x13, 0xc6, 0x74, 0xe9, 0xcc, 0xee, 0xc2, 0xa0, 0x42, 0x2d, 0xc3, 0x9b, 0x8d, 0x5b, 0x0e, 0x01,
+	0xde, 0x71, 0x6f, 0xc5, 0x55, 0x54, 0xde, 0x90, 0xe7, 0x40, 0xf1, 0xb6, 0x4b, 0x67, 0xf6, 0xb3,
+	0x05, 0x83, 0xcb, 0x58, 0x04, 0x57, 0x81, 0xef, 0x89, 0x20, 0x8e, 0xf0, 0x11, 0xc0, 0x4c, 0x5e,
+	0x3d, 0xe6, 0x2b, 0x1e, 0x09, 0x82, 0xf6, 0x4f, 0xff, 0x73, 0x34, 0xa5, 0xe7, 0x32, 0xfa, 0x3a,
+	0x0f, 0x5e, 0x34, 0x5c, 0x73, 0x56, 0x1a, 0xf8, 0x14, 0xfa, 0xc4, 0x93, 0x0a, 0x45, 0x96, 0x5a,
+	0x2d, 0x22, 0xee, 0xdf, 0x26, 0x8e, 0x28, 0x2a, 0x99, 0xf4, 0x88, 0xb2, 0xf0, 0x01, 0x74, 0xbe,
+	0xc5, 0x41, 0x64, 0xb5, 0x37, 0x1f, 0x7b, 0x2b, 0xfd, 0xe5, 0x63, 0x04, 0x42, 0x07, 0x8c, 0x30,
+	0x97, 0x64, 0x75, 0x36, 0x5f, 0x20, 0xad, 0x25, 0x5c, 0xc1, 0xf0, 0x39, 0x0c, 0x53, 0x9e, 0xac,
+	0x78, 0x52, 0x66, 0x66, 0x10, 0xcf, 0xd2, 0x79, 0x23, 0x02, 0x54, 0xb9, 0x0d, 0x52, 0xcd, 0x3e,
+	0xeb, 0x82, 0x41, 0xb5, 0x60, 0xd7, 0x60, 0x56, 0xda, 0xd1, 0x82, 0xee, 0x42, 0xb5, 0xae, 0x68,
+	0x48, 0x69, 0xe2, 0x3e, 0xec, 0x78, 0x99, 0x98, 0xc7, 0x09, 0xd5, 0xc0, 0x74, 0x0b, 0x0b, 0x9f,
+	0x80, 0x59, 0x4d, 0x40, 0x21, 0xd5, 0x76, 0xd4, 0x8c, 0x38, 0xe5, 0x8c, 0x38, 0x1f, 0x4b, 0x84,
+	0xbb, 0x06, 0xb3, 0x2f, 0x00, 0xeb, 0xda, 0xe1, 0x7d, 0xe8, 0xf8, 0x73, 0x2f, 0x6f, 0x4d, 0x7b,
+	0x6b, 0x6b, 0x5c, 0x82, 0xe0, 0x11, 0x0c, 0xfd, 0x2c, 0x49, 0xa4, 0xe3, 0x43, 0xe8, 0xdd, 0x70,
+	0x95, 0x91, 0xe1, 0xd6, 0x9d, 0xec, 0x2b, 0x98, 0x55, 0x99, 0xf1, 0x00, 0xfa, 0x4b, 0x72, 0x8f,
+	0xb5, 0x61, 0x03, 0xe5, 0xba, 0x94, 0x1e, 0x3c, 0x81, 0x9d, 0x5a, 0x8b, 0xb7, 0x16, 0xd2, 0x2d,
+	0x70, 0x6c, 0x5c, 0x0c, 0xe1, 0x3f, 0x7b, 0xc0, 0x81, 0x81, 0xee, 0xc7, 0x3d, 0x68, 0x2f, 0xbc,
+	0x1f, 0xc5, 0x1a, 0xe4, 0x47, 0x1c, 0x40, 0x33, 0x2a, 0xc4, 0x37, 0x23, 0xf6, 0x18, 0xfa, 0xb9,
+	0xf4, 0x72, 0xb1, 0x6e, 0x2d, 0x8d, 0xde, 0xda, 0x56, 0xad, 0xb5, 0xec, 0x25, 0x98, 0x8a, 0x98,
+	0x6f, 0x93, 0x0d, 0x3d, 0xcf, 0xf7, 0xf9, 0x52, 0x70, 0x45, 0xee, 0xb9, 0x95, 0xbd, 0xfd, 0x8a,
+	0xd3, 0x5f, 0x2d, 0x80, 0x8b, 0x5c, 0xcf, 0xa7, 0x5c, 0x0f, 0x3e, 0x83, 0x6e, 0xb1, 0xc0, 0x68,
+	0xeb, 0x3a, 0xeb, 0xbb, 0x6f, 0xd7, 0xba, 0x5c, 0xfd, 0x34, 0x58, 0x43, 0x0e, 0x95, 0x41, 0xb5,
+	0xc5, 0x3f, 0x23, 0xec, 0xcd, 0xf5, 0xa0, 0xe4, 0x25, 0xf3, 0x05, 0x98, 0xa3, 0x6c, 0x92, 0xfa,
+	0x49, 0x30, 0xd9, 0xca, 0xae, 0x95, 0x5e, 0xff, 0x4b, 0xb0, 0xc6, 0x49, 0x53, 0xde, 0x30, 0x3c,
+	0xe7, 0x42, 0x9b, 0xcc, 0xbf, 0xc9, 0x61, 0x0d, 0xa7, 0xec, 0x3b, 0x79, 0x3d, 0xf1, 0x7f, 0x1d,
+	0xa1, 0xb5, 0xa6, 0xae, 0xbb, 0x2a, 0x3d, 0x6b, 0x9c, 0xf5, 0x3e, 0xef, 0xd0, 0xce, 0xa4, 0x13,
+	0xf5, 0x7d, 0xf8, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x74, 0x9b, 0xc4, 0x88, 0x8d, 0x05, 0x00, 0x00,
 }

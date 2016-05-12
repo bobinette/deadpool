@@ -60,19 +60,17 @@ func (g *generator) Generate(name string) error {
 			fileName:     fmt.Sprintf("%s/server/player.go", lower),
 		},
 		{
-			templateName: "up.go.tmpl",
-			fileName:     "up.go",
+			templateName: "main.go.tmpl",
+			fileName:     fmt.Sprintf("%s/main.go", lower),
 		},
 	}
 
 	var data = struct {
 		Name      string
 		NameLower string
-		Games     []string
 	}{
 		Name:      name,
 		NameLower: lower,
-		Games:     g.lister.List(),
 	}
 
 	for _, t := range templates {

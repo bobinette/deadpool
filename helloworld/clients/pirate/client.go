@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
@@ -50,46 +51,26 @@ func (c *client) Connect() error {
 		errCh <- c.Watch(stream)
 	}()
 
-	// Play at some random times
-	go func() {
-		src := rand.NewSource(time.Now().UnixNano())
-		gen := rand.New(src)
-
-		for {
-			select {
-			case <-errCh:
-				return
-			default:
-				time.Sleep(time.Duration(gen.Intn(20)) * 250 * time.Millisecond)
-				pr, err := c.hwc.Play(context.Background(), &protos.PlayRequest{Id: int32(c.id), Message: c.player.Play()})
-				if err != nil {
-					return
-				}
-				log.Println(pr.Message)
-			}
-		}
-	}()
-
 	// Randomly ask for notifications
-	go func() {
-		src := rand.NewSource(time.Now().UnixNano())
-		gen := rand.New(src)
+	// go func() {
+	// 	src := rand.NewSource(time.Now().UnixNano())
+	// 	gen := rand.New(src)
 
-		for {
-			select {
-			case <-errCh:
-				return
-			default:
-				time.Sleep(time.Duration(gen.Intn(20)) * time.Second)
-				log.Println("Requesting notification, Sir!")
-				n, err := c.hwc.GetNotification(context.Background(), &protos.IdMessage{Id: int32(c.id)})
-				if err != nil {
-					return
-				}
-				c.Handle(n)
-			}
-		}
-	}()
+	// 	for {
+	// 		select {
+	// 		case <-errCh:
+	// 			return
+	// 		default:
+	// 			time.Sleep(time.Duration(gen.Intn(20)) * time.Second)
+	// 			log.Println("Requesting notification, Sir!")
+	// 			n, err := c.hwc.GetGameStatus(context.Background(), &protos.IdMessage{Id: int32(c.id)})
+	// 			if err != nil {
+	// 				return
+	// 			}
+	// 			log.Printf("%d messages in the chat", len(n.Chat))
+	// 		}
+	// 	}
+	// }()
 
 	return <-errCh
 }
@@ -112,19 +93,51 @@ func (c *client) Watch(stream protos.HelloWorld_SubscribeClient) error {
 		if err != nil {
 			return err
 		}
-		c.Handle(n)
+
+		if err := c.Handle(n); err != nil {
+			return err
+		}
 	}
 }
 
-func (c *client) Handle(n *protos.Notification) {
-	log.Printf("In the channel: %d/%d persons", n.NPlayers, n.MaxPlayers)
-	if n.Joined != "" {
-		log.Printf("and %s just joined", n.Joined)
+func (c *client) Handle(n *protos.Notification) error {
+	switch e := n.GetEvent().(type) {
+	case *protos.Notification_Join:
+		name := e.Join.PlayerName
+		status := e.Join.Status
+		log.Printf("%s just joined! In the channel: %d/%d persons", name, status.N, status.Max)
+	case *protos.Notification_GameEvent:
+		t, err := ptypes.Timestamp(e.GameEvent.Timestamp)
+		if err != nil {
+			return err
+		}
+		log.Printf("%s - %s says:\n\t%s", t.String(), e.GameEvent.Author, e.GameEvent.Message)
+	case *protos.Notification_GameStatus:
+		if int(e.GameStatus.CurrentPlayer) != c.id {
+			return nil
+		}
+		log.Println("My turn to play!!")
+		pr, err := c.hwc.Play(context.Background(), c.Play())
+		if err != nil {
+			return err
+		}
+		if !pr.Accepted {
+
+			log.Printf("Play not accepted: %s", pr.Message)
+		} else {
+			log.Println("Message accepted. Sent: %s", pr.Message)
+		}
+	case nil:
+		log.Println("Nil notification received")
+	default:
+		log.Println("Unknown notification type")
 	}
-	if n.Left != "" {
-		log.Printf("and %s just left", n.Left)
-	}
-	if n.Message != "" && int(n.AuthorId) != c.id {
-		log.Printf("and got message: \"%s\" from %s (id: %d)", n.Message, n.Author, n.AuthorId)
-	}
+	return nil
+}
+
+func (c *client) Play() *protos.PlayRequest {
+	src := rand.NewSource(time.Now().UnixNano())
+	gen := rand.New(src)
+	time.Sleep(time.Duration(gen.Intn(20)) * time.Second)
+	return &protos.PlayRequest{Id: int32(c.id), Message: c.player.Play()}
 }
