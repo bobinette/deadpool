@@ -26,16 +26,11 @@ message ConnectRequest {
   string name = 1;
 }
 
-message ConnectReply {
-  // Id of the player
-  int32 id = 1;
-}
-
 // ---- Notification
 message Notification {
-  oneof event {
+  oneof body {
     // Welcome event - should be sent once, when the player first connects
-    IdMessage id = 1;
+    IdMessage id_message = 1;
 
     // Game notifications
     GameEvent game_event = 2;
