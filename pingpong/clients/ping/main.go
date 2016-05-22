@@ -19,21 +19,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("Error closing the connection: %v", err)
+		}
+	}()
 
 	c := NewClient(conn)
+	if err := c.Connect(); err != nil {
+		log.Printf("Error: %s", err)
+	}
 
 	// Capture interrupt
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 
-	go func() {
-		err := c.Connect()
-		if err != nil {
-			log.Printf("Error: %s", err)
-		}
-		close(quit)
-	}()
-
 	<-quit
+	log.Println("Disconnecting client...")
+	if err := c.Disconnect(); err != nil {
+		log.Printf("Error disconnecting: %v", err)
+	} else {
+		log.Println("Disconnected")
+	}
 }
