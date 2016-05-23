@@ -11,7 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	IdMessage
 	ConnectRequest
+	LeaveReply
 	Notification
+	ConnectReply
 	GameEvent
 	GameStatus
 	PlayRequest
@@ -58,10 +60,19 @@ func (m *ConnectRequest) String() string            { return proto.CompactTextSt
 func (*ConnectRequest) ProtoMessage()               {}
 func (*ConnectRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
+// ---- Leave
+type LeaveReply struct {
+}
+
+func (m *LeaveReply) Reset()                    { *m = LeaveReply{} }
+func (m *LeaveReply) String() string            { return proto.CompactTextString(m) }
+func (*LeaveReply) ProtoMessage()               {}
+func (*LeaveReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
 // ---- Notification
 type Notification struct {
 	// Types that are valid to be assigned to Body:
-	//	*Notification_IdMessage
+	//	*Notification_ConnectReply
 	//	*Notification_GameEvent
 	//	*Notification_GameStatus
 	Body isNotification_Body `protobuf_oneof:"body"`
@@ -70,14 +81,14 @@ type Notification struct {
 func (m *Notification) Reset()                    { *m = Notification{} }
 func (m *Notification) String() string            { return proto.CompactTextString(m) }
 func (*Notification) ProtoMessage()               {}
-func (*Notification) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*Notification) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
 type isNotification_Body interface {
 	isNotification_Body()
 }
 
-type Notification_IdMessage struct {
-	IdMessage *IdMessage `protobuf:"bytes,1,opt,name=id_message,json=idMessage,oneof"`
+type Notification_ConnectReply struct {
+	ConnectReply *ConnectReply `protobuf:"bytes,1,opt,name=connect_reply,json=connectReply,oneof"`
 }
 type Notification_GameEvent struct {
 	GameEvent *GameEvent `protobuf:"bytes,2,opt,name=game_event,json=gameEvent,oneof"`
@@ -86,9 +97,9 @@ type Notification_GameStatus struct {
 	GameStatus *GameStatus `protobuf:"bytes,3,opt,name=game_status,json=gameStatus,oneof"`
 }
 
-func (*Notification_IdMessage) isNotification_Body()  {}
-func (*Notification_GameEvent) isNotification_Body()  {}
-func (*Notification_GameStatus) isNotification_Body() {}
+func (*Notification_ConnectReply) isNotification_Body() {}
+func (*Notification_GameEvent) isNotification_Body()    {}
+func (*Notification_GameStatus) isNotification_Body()   {}
 
 func (m *Notification) GetBody() isNotification_Body {
 	if m != nil {
@@ -97,9 +108,9 @@ func (m *Notification) GetBody() isNotification_Body {
 	return nil
 }
 
-func (m *Notification) GetIdMessage() *IdMessage {
-	if x, ok := m.GetBody().(*Notification_IdMessage); ok {
-		return x.IdMessage
+func (m *Notification) GetConnectReply() *ConnectReply {
+	if x, ok := m.GetBody().(*Notification_ConnectReply); ok {
+		return x.ConnectReply
 	}
 	return nil
 }
@@ -121,7 +132,7 @@ func (m *Notification) GetGameStatus() *GameStatus {
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*Notification) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _Notification_OneofMarshaler, _Notification_OneofUnmarshaler, _Notification_OneofSizer, []interface{}{
-		(*Notification_IdMessage)(nil),
+		(*Notification_ConnectReply)(nil),
 		(*Notification_GameEvent)(nil),
 		(*Notification_GameStatus)(nil),
 	}
@@ -131,9 +142,9 @@ func _Notification_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	m := msg.(*Notification)
 	// body
 	switch x := m.Body.(type) {
-	case *Notification_IdMessage:
+	case *Notification_ConnectReply:
 		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.IdMessage); err != nil {
+		if err := b.EncodeMessage(x.ConnectReply); err != nil {
 			return err
 		}
 	case *Notification_GameEvent:
@@ -156,13 +167,13 @@ func _Notification_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _Notification_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*Notification)
 	switch tag {
-	case 1: // body.id_message
+	case 1: // body.connect_reply
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(IdMessage)
+		msg := new(ConnectReply)
 		err := b.DecodeMessage(msg)
-		m.Body = &Notification_IdMessage{msg}
+		m.Body = &Notification_ConnectReply{msg}
 		return true, err
 	case 2: // body.game_event
 		if wire != proto.WireBytes {
@@ -189,8 +200,8 @@ func _Notification_OneofSizer(msg proto.Message) (n int) {
 	m := msg.(*Notification)
 	// body
 	switch x := m.Body.(type) {
-	case *Notification_IdMessage:
-		s := proto.Size(x.IdMessage)
+	case *Notification_ConnectReply:
+		s := proto.Size(x.ConnectReply)
 		n += proto.SizeVarint(1<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
@@ -211,15 +222,25 @@ func _Notification_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+type ConnectReply struct {
+	Id    int32 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Sound int32 `protobuf:"varint,2,opt,name=sound" json:"sound,omitempty"`
+}
+
+func (m *ConnectReply) Reset()                    { *m = ConnectReply{} }
+func (m *ConnectReply) String() string            { return proto.CompactTextString(m) }
+func (*ConnectReply) ProtoMessage()               {}
+func (*ConnectReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
 type GameEvent struct {
-	PlayerId  int32                      `protobuf:"varint,1,opt,name=player_id,json=playerId" json:"player_id,omitempty"`
+	Sound     int32                      `protobuf:"varint,1,opt,name=sound" json:"sound,omitempty"`
 	Timestamp *google_protobuf.Timestamp `protobuf:"bytes,2,opt,name=timestamp" json:"timestamp,omitempty"`
 }
 
 func (m *GameEvent) Reset()                    { *m = GameEvent{} }
 func (m *GameEvent) String() string            { return proto.CompactTextString(m) }
 func (*GameEvent) ProtoMessage()               {}
-func (*GameEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+func (*GameEvent) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
 
 func (m *GameEvent) GetTimestamp() *google_protobuf.Timestamp {
 	if m != nil {
@@ -231,14 +252,14 @@ func (m *GameEvent) GetTimestamp() *google_protobuf.Timestamp {
 type GameStatus struct {
 	// The history of the conversation
 	Pingpong []*GameEvent `protobuf:"bytes,1,rep,name=pingpong" json:"pingpong,omitempty"`
-	// The id of the player that is allowed to talk now
-	CurrentPlayer int32 `protobuf:"varint,2,opt,name=currentPlayer" json:"currentPlayer,omitempty"`
+	// The sound of the player that is allowed to talk now
+	CurrentSound int32 `protobuf:"varint,2,opt,name=currentSound" json:"currentSound,omitempty"`
 }
 
 func (m *GameStatus) Reset()                    { *m = GameStatus{} }
 func (m *GameStatus) String() string            { return proto.CompactTextString(m) }
 func (*GameStatus) ProtoMessage()               {}
-func (*GameStatus) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*GameStatus) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
 
 func (m *GameStatus) GetPingpong() []*GameEvent {
 	if m != nil {
@@ -256,7 +277,7 @@ type PlayRequest struct {
 func (m *PlayRequest) Reset()                    { *m = PlayRequest{} }
 func (m *PlayRequest) String() string            { return proto.CompactTextString(m) }
 func (*PlayRequest) ProtoMessage()               {}
-func (*PlayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (*PlayRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
 
 type PlayReply struct {
 	// Acceptation status - was it the player's turn to play?
@@ -266,12 +287,14 @@ type PlayReply struct {
 func (m *PlayReply) Reset()                    { *m = PlayReply{} }
 func (m *PlayReply) String() string            { return proto.CompactTextString(m) }
 func (*PlayReply) ProtoMessage()               {}
-func (*PlayReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*PlayReply) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
 
 func init() {
 	proto.RegisterType((*IdMessage)(nil), "pingpong.IdMessage")
 	proto.RegisterType((*ConnectRequest)(nil), "pingpong.ConnectRequest")
+	proto.RegisterType((*LeaveReply)(nil), "pingpong.LeaveReply")
 	proto.RegisterType((*Notification)(nil), "pingpong.Notification")
+	proto.RegisterType((*ConnectReply)(nil), "pingpong.ConnectReply")
 	proto.RegisterType((*GameEvent)(nil), "pingpong.GameEvent")
 	proto.RegisterType((*GameStatus)(nil), "pingpong.GameStatus")
 	proto.RegisterType((*PlayRequest)(nil), "pingpong.PlayRequest")
@@ -291,6 +314,8 @@ const _ = grpc.SupportPackageIsVersion2
 type PingPongClient interface {
 	// Connects to the server to get an id to use in other messages
 	Connect(ctx context.Context, in *ConnectRequest, opts ...grpc.CallOption) (PingPong_ConnectClient, error)
+	// Connects to the server to get an id to use in other messages
+	Leave(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*LeaveReply, error)
 	// Request a notification from the server
 	GetGameStatus(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*GameStatus, error)
 	// Let the server know the client's move for the game
@@ -337,6 +362,15 @@ func (x *pingPongConnectClient) Recv() (*Notification, error) {
 	return m, nil
 }
 
+func (c *pingPongClient) Leave(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*LeaveReply, error) {
+	out := new(LeaveReply)
+	err := grpc.Invoke(ctx, "/pingpong.PingPong/Leave", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *pingPongClient) GetGameStatus(ctx context.Context, in *IdMessage, opts ...grpc.CallOption) (*GameStatus, error) {
 	out := new(GameStatus)
 	err := grpc.Invoke(ctx, "/pingpong.PingPong/GetGameStatus", in, out, c.cc, opts...)
@@ -360,6 +394,8 @@ func (c *pingPongClient) Play(ctx context.Context, in *PlayRequest, opts ...grpc
 type PingPongServer interface {
 	// Connects to the server to get an id to use in other messages
 	Connect(*ConnectRequest, PingPong_ConnectServer) error
+	// Connects to the server to get an id to use in other messages
+	Leave(context.Context, *IdMessage) (*LeaveReply, error)
 	// Request a notification from the server
 	GetGameStatus(context.Context, *IdMessage) (*GameStatus, error)
 	// Let the server know the client's move for the game
@@ -389,6 +425,24 @@ type pingPongConnectServer struct {
 
 func (x *pingPongConnectServer) Send(m *Notification) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _PingPong_Leave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PingPongServer).Leave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pingpong.PingPong/Leave",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PingPongServer).Leave(ctx, req.(*IdMessage))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _PingPong_GetGameStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -432,6 +486,10 @@ var _PingPong_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*PingPongServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Leave",
+			Handler:    _PingPong_Leave_Handler,
+		},
+		{
 			MethodName: "GetGameStatus",
 			Handler:    _PingPong_GetGameStatus_Handler,
 		},
@@ -450,31 +508,34 @@ var _PingPong_serviceDesc = grpc.ServiceDesc{
 }
 
 var fileDescriptor0 = []byte{
-	// 415 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x74, 0x52, 0x4b, 0xab, 0xd3, 0x40,
-	0x14, 0x4e, 0xfa, 0x32, 0x39, 0xb5, 0x5d, 0x4c, 0x55, 0x42, 0x44, 0x94, 0xa1, 0xa0, 0xab, 0x54,
-	0xaa, 0xa0, 0x0b, 0x41, 0xa8, 0x48, 0xed, 0x42, 0x29, 0xa3, 0x2b, 0x37, 0x25, 0x8f, 0x69, 0x18,
-	0x68, 0x32, 0x31, 0x99, 0x08, 0xfd, 0x6d, 0x77, 0x71, 0xff, 0xda, 0x9d, 0xcc, 0x34, 0x93, 0xb6,
-	0xf4, 0xae, 0x66, 0xce, 0x39, 0xdf, 0x77, 0xbe, 0xf3, 0x82, 0x69, 0xc1, 0xf2, 0xb4, 0xe0, 0x79,
-	0x1a, 0x14, 0x25, 0x17, 0x1c, 0x39, 0xad, 0xed, 0xbf, 0x4e, 0x39, 0x4f, 0x0f, 0x74, 0xa1, 0xfc,
-	0x51, 0xbd, 0x5f, 0x08, 0x96, 0xd1, 0x4a, 0x84, 0x59, 0xa1, 0xa1, 0xf8, 0x25, 0xb8, 0x9b, 0xe4,
-	0x27, 0xad, 0xaa, 0x30, 0xa5, 0x68, 0x0a, 0x3d, 0x96, 0x78, 0xf6, 0x1b, 0xfb, 0xdd, 0x90, 0xc8,
-	0x1f, 0x9e, 0xc3, 0xf4, 0x1b, 0xcf, 0x73, 0x1a, 0x0b, 0x42, 0xff, 0xd5, 0x92, 0x87, 0x10, 0x0c,
-	0xf2, 0x30, 0xa3, 0x0a, 0xe3, 0x12, 0xf5, 0xc7, 0x77, 0x36, 0x3c, 0xfd, 0xc5, 0x05, 0xdb, 0xb3,
-	0x38, 0x14, 0x8c, 0xe7, 0xe8, 0x23, 0x00, 0x4b, 0x76, 0x99, 0x4e, 0xaa, 0xa0, 0xe3, 0xe5, 0x2c,
-	0x30, 0x35, 0x1a, 0xbd, 0x1f, 0x16, 0x71, 0x99, 0x11, 0x97, 0xac, 0x54, 0xa6, 0xdb, 0xd1, 0xff,
-	0x34, 0x17, 0x5e, 0xef, 0x9a, 0xb5, 0x96, 0xb1, 0xef, 0x4d, 0xa8, 0x61, 0xa5, 0xad, 0x81, 0x3e,
-	0xc1, 0x58, 0xb1, 0x64, 0x4f, 0xa2, 0xae, 0xbc, 0xbe, 0xa2, 0x3d, 0xbb, 0xa4, 0xfd, 0x56, 0x31,
-	0xc9, 0x53, 0x02, 0xda, 0x5a, 0x8d, 0x60, 0x10, 0xf1, 0xe4, 0x88, 0x23, 0x70, 0x4d, 0x6a, 0x24,
-	0xa7, 0x51, 0x1c, 0xc2, 0x23, 0x2d, 0x77, 0x66, 0x0e, 0x8e, 0x76, 0x6c, 0x12, 0xf4, 0x19, 0x5c,
-	0x33, 0xbd, 0x53, 0x7d, 0x7e, 0xa0, 0xe7, 0x1b, 0xb4, 0xf3, 0x0d, 0xfe, 0xb4, 0x08, 0xd2, 0x81,
-	0x71, 0x0c, 0xd0, 0xd5, 0x81, 0x16, 0x60, 0xf6, 0x23, 0x35, 0xfa, 0x8f, 0xb4, 0x49, 0x0c, 0x08,
-	0xcd, 0x61, 0x12, 0xd7, 0x65, 0x29, 0x9d, 0x5b, 0x55, 0x8b, 0x12, 0x1f, 0x92, 0x4b, 0x27, 0x7e,
-	0x05, 0xe3, 0xe6, 0xd7, 0x6e, 0xea, 0x7a, 0x97, 0x6f, 0xc1, 0xd5, 0xe1, 0xe2, 0x70, 0x44, 0x3e,
-	0x38, 0x61, 0x1c, 0xd3, 0x42, 0x50, 0x0d, 0x71, 0x88, 0xb1, 0x97, 0xf7, 0x36, 0x38, 0x5b, 0x29,
-	0xbd, 0x6d, 0xa4, 0xbf, 0xc2, 0x93, 0xd3, 0x05, 0x20, 0xaf, 0x2b, 0xf2, 0xf2, 0x28, 0xfc, 0x17,
-	0x5d, 0xe4, 0xfc, 0x0e, 0xb0, 0xf5, 0xde, 0x46, 0x5f, 0x60, 0xb2, 0xa6, 0xe2, 0xac, 0xfb, 0x5b,
-	0x87, 0xe0, 0xdf, 0x5c, 0x18, 0xb6, 0xe4, 0x4d, 0x0c, 0x9a, 0xa2, 0xd1, 0xf3, 0x2e, 0x7e, 0xd6,
-	0xa3, 0x3f, 0xbb, 0x76, 0xcb, 0xde, 0xb0, 0xb5, 0x72, 0xfe, 0x8e, 0xd4, 0x3e, 0xaa, 0x48, 0xbf,
-	0x1f, 0x1e, 0x02, 0x00, 0x00, 0xff, 0xff, 0x70, 0x32, 0x85, 0xef, 0x21, 0x03, 0x00, 0x00,
+	// 453 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x84, 0x52, 0x51, 0x8b, 0xd3, 0x40,
+	0x10, 0x6e, 0xee, 0x9a, 0x33, 0x99, 0xe6, 0xfa, 0xb0, 0x77, 0x4a, 0x88, 0x88, 0xb2, 0x08, 0xfa,
+	0x94, 0xca, 0x59, 0xd0, 0x07, 0x45, 0x38, 0x91, 0x53, 0x50, 0x29, 0x7b, 0x3e, 0xe9, 0xc3, 0xb1,
+	0x4d, 0xb6, 0x21, 0xd0, 0xee, 0xc6, 0x64, 0x53, 0xe8, 0xff, 0xf3, 0x2f, 0xf9, 0xee, 0x66, 0xb7,
+	0xd9, 0x6c, 0x8b, 0xe2, 0x53, 0x76, 0x66, 0xbe, 0x2f, 0xdf, 0xcc, 0x7c, 0x03, 0xd3, 0xaa, 0xe4,
+	0x45, 0x25, 0x78, 0x91, 0x56, 0xb5, 0x90, 0x02, 0x05, 0x7d, 0x9c, 0x3c, 0x2e, 0x84, 0x28, 0xd6,
+	0x6c, 0xa6, 0xf3, 0xcb, 0x76, 0x35, 0x93, 0xe5, 0x86, 0x35, 0x92, 0x6e, 0x2a, 0x03, 0xc5, 0x0f,
+	0x21, 0xfc, 0x94, 0x7f, 0x61, 0x4d, 0x43, 0x0b, 0x86, 0xa6, 0x70, 0x52, 0xe6, 0xb1, 0xf7, 0xc4,
+	0x7b, 0xee, 0x13, 0xf5, 0xc2, 0x4f, 0x61, 0xfa, 0x5e, 0x70, 0xce, 0x32, 0x49, 0xd8, 0xcf, 0x56,
+	0xf1, 0x10, 0x82, 0x31, 0xa7, 0x1b, 0xa6, 0x31, 0x21, 0xd1, 0x6f, 0x1c, 0x01, 0x7c, 0x66, 0x74,
+	0xcb, 0x08, 0xab, 0xd6, 0x3b, 0xfc, 0xcb, 0x83, 0xe8, 0xab, 0x90, 0xe5, 0xaa, 0xcc, 0xa8, 0x2c,
+	0x05, 0x47, 0x6f, 0xe1, 0x3c, 0x33, 0x3f, 0xb9, 0xab, 0x3b, 0x84, 0xe6, 0x4e, 0xae, 0x1e, 0xa4,
+	0xb6, 0x69, 0xab, 0xa1, 0xaa, 0x1f, 0x47, 0x24, 0xca, 0x9c, 0x18, 0xcd, 0x01, 0x0a, 0xa5, 0x72,
+	0xc7, 0xb6, 0x8c, 0xcb, 0xf8, 0x44, 0x73, 0x2f, 0x06, 0xee, 0x8d, 0xaa, 0x7d, 0xe8, 0x4a, 0x8a,
+	0x18, 0x16, 0x7d, 0x80, 0x5e, 0xc1, 0x44, 0xb3, 0xd4, 0xa8, 0xb2, 0x6d, 0xe2, 0x53, 0x4d, 0xbb,
+	0x3c, 0xa4, 0xdd, 0xea, 0x9a, 0xe2, 0x69, 0x01, 0x13, 0x5d, 0x9f, 0xc1, 0x78, 0x29, 0xf2, 0x1d,
+	0x9e, 0x43, 0xe4, 0xb6, 0x75, 0xbc, 0x1a, 0x74, 0x09, 0x7e, 0x23, 0x5a, 0x9e, 0xeb, 0x8e, 0x7c,
+	0x62, 0x02, 0xfc, 0x03, 0x42, 0xdb, 0xd0, 0x00, 0xf1, 0x1c, 0x08, 0x7a, 0x0d, 0xa1, 0xf5, 0x60,
+	0x3f, 0x4e, 0x92, 0x1a, 0x97, 0xd2, 0xde, 0xa5, 0xf4, 0x5b, 0x8f, 0x20, 0x03, 0x18, 0x53, 0x80,
+	0xa1, 0x6d, 0x34, 0x03, 0xeb, 0xb2, 0x12, 0x38, 0xfd, 0xc7, 0x56, 0x88, 0x05, 0x21, 0x0c, 0x51,
+	0xd6, 0xd6, 0xb5, 0x4a, 0xde, 0x3a, 0x8d, 0x1f, 0xe4, 0xf0, 0x23, 0x98, 0x2c, 0xd6, 0x74, 0xd7,
+	0xbb, 0x7d, 0x7c, 0x0f, 0xcf, 0x20, 0x34, 0xe5, 0x6e, 0x23, 0x09, 0x04, 0x34, 0xcb, 0x58, 0x25,
+	0x99, 0x81, 0x04, 0xc4, 0xc6, 0x57, 0xbf, 0x3d, 0x08, 0x16, 0x4a, 0x78, 0xd1, 0x09, 0xbf, 0x83,
+	0x7b, 0xfb, 0x55, 0xa2, 0xf8, 0x2f, 0xa6, 0x6b, 0xa9, 0xc4, 0x39, 0x07, 0xf7, 0x7a, 0xf0, 0xe8,
+	0x85, 0xa7, 0x4e, 0xc0, 0xd7, 0x07, 0x86, 0x9c, 0x09, 0xed, 0xd1, 0x26, 0x8e, 0xab, 0xce, 0x19,
+	0x8e, 0xd0, 0x1b, 0x38, 0xbf, 0x61, 0xd2, 0xd9, 0xd8, 0xff, 0xd8, 0x03, 0x54, 0xb1, 0xe7, 0x30,
+	0xee, 0x46, 0x45, 0xf7, 0x87, 0xba, 0xb3, 0x99, 0xe4, 0xe2, 0x38, 0xad, 0x35, 0xaf, 0x83, 0xef,
+	0x67, 0xda, 0xc3, 0x66, 0x69, 0xbe, 0x2f, 0xff, 0x04, 0x00, 0x00, 0xff, 0xff, 0xba, 0xb5, 0xc6,
+	0x97, 0x9b, 0x03, 0x00, 0x00,
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"math/rand"
 	"time"
@@ -18,9 +19,30 @@ type Client interface {
 	Disconnect() error
 }
 
+type Sound int32
+
+const (
+	Ping    Sound = iota
+	Pong    Sound = iota
+	Silence Sound = iota
+)
+
+func (s Sound) String() string {
+	switch s {
+	case Ping:
+		return "Ping"
+	case Pong:
+		return "Pong"
+	case Silence:
+		return "Silence"
+	}
+	return "Unknown"
+}
+
 type client struct {
-	id  int32
-	ppc protos.PingPongClient
+	id    int32
+	sound Sound
+	ppc   protos.PingPongClient
 
 	stream protos.PingPong_ConnectClient
 }
@@ -43,8 +65,14 @@ func (c *client) Connect() error {
 	if err != nil {
 		return err
 	}
-	c.id = n.GetIdMessage().Id
-	log.Printf("Got id %d", c.id)
+	rep := n.GetConnectReply()
+	if rep == nil {
+		return errors.New("Error: got nil connect reply from server")
+	}
+
+	c.id = rep.Id
+	c.sound = Sound(rep.Sound)
+	log.Printf("Got id %d, sound %v", c.id, c.sound)
 
 	go c.monitor(stream)
 
@@ -72,6 +100,10 @@ func (c *client) Disconnect() error {
 		return err
 	}
 	log.Println("Stream closed")
+
+	if _, err := c.ppc.Leave(context.Background(), &protos.IdMessage{Id: c.id}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -89,7 +121,7 @@ func (c *client) monitor(stream protos.PingPong_ConnectClient) {
 			log.Printf("Error while requesting for game status: %v", err)
 			return
 		}
-		log.Println(s.Pingpong)
+		log.Printf("%d messages", len(s.Pingpong))
 	}
 }
 

@@ -29,16 +29,12 @@ func main() {
 	if err := c.Connect(); err != nil {
 		log.Printf("Error: %s", err)
 	}
+	defer c.Disconnect()
 
 	// Capture interrupt
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 
 	<-quit
-	log.Println("Disconnecting client...")
-	if err := c.Disconnect(); err != nil {
-		log.Printf("Error disconnecting: %v", err)
-	} else {
-		log.Println("Disconnected")
-	}
+	log.Println("Disconnected")
 }

@@ -8,9 +8,41 @@ import (
 	"github.com/bobinette/deadpool/pingpong/protos"
 )
 
+// ----------------------------------------------------------------------------
+// Sound
+type Sound int32
+
+const (
+	Ping    Sound = iota
+	Pong    Sound = iota
+	Silence Sound = iota
+)
+
+func (s Sound) String() string {
+	switch s {
+	case Ping:
+		return "Ping"
+	case Pong:
+		return "Pong"
+	case Silence:
+		return "Silence"
+	}
+	return "Unknown"
+}
+
+// ----------------------------------------------------------------------------
+// Player
+
+type Player struct {
+	Id    int32
+	Sound Sound
+}
+
+// ----------------------------------------------------------------------------
+// Game
 type Game interface {
-	Play(int32) (*protos.PlayReply, error)
-	Status() *protos.GameStatus
+	Play(Sound) (*protos.PlayReply, error)
+	History() []*protos.GameEvent
 }
 
 type game struct {
@@ -23,14 +55,14 @@ func NewGame() Game {
 	}
 }
 
-func (g *game) Play(id int32) (*protos.PlayReply, error) {
+func (g *game) Play(s Sound) (*protos.PlayReply, error) {
 	ts, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
 		return nil, err
 	}
 
 	e := &protos.GameEvent{
-		PlayerId:  id,
+		Sound:     int32(s),
 		Timestamp: ts,
 	}
 	g.history = append(g.history, e)
@@ -41,9 +73,6 @@ func (g *game) Play(id int32) (*protos.PlayReply, error) {
 	return &rep, nil
 }
 
-func (g *game) Status() *protos.GameStatus {
-	return &protos.GameStatus{
-		CurrentPlayer: -1,
-		Pingpong:      g.history,
-	}
+func (g *game) History() []*protos.GameEvent {
+	return g.history
 }
