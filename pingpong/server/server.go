@@ -14,7 +14,7 @@ import (
 
 type server struct {
 	// Clients
-	clients map[int32]Player
+	clients map[int32]client
 	// Id given last to a client. To ensure id uniqueness
 	lastId int32
 	// Id of the client that can play
@@ -24,11 +24,17 @@ type server struct {
 	game     Game
 }
 
+type client struct {
+	*Player
+
+	leave chan struct{}
+}
+
 func NewServer() *grpc.Server {
 	s := grpc.NewServer()
 
 	pps := server{
-		clients:      make(map[int32]Player),
+		clients:      make(map[int32]client),
 		lastId:       0,
 		currentSound: Silence,
 
@@ -51,11 +57,6 @@ func (s *server) Connect(in *protos.ConnectRequest, stream protos.PingPong_Conne
 	// Register client
 	s.notifier.Register(c.Id, stream)
 
-	if len(s.clients) >= 2 {
-		log.Println("Starting game...")
-		s.currentSound = s.nextSound()
-	}
-
 	// Send back it's id to the player
 	n := s.craftConnectReply(c.Id, c.Sound)
 	if err := s.notifier.Notify(c.Id, n); err != nil {
@@ -63,12 +64,26 @@ func (s *server) Connect(in *protos.ConnectRequest, stream protos.PingPong_Conne
 		return err
 	}
 
+	if len(s.clients) >= 2 {
+		log.Println("Starting game...")
+		s.currentSound = s.nextSound()
+		for _, cl := range s.clients {
+			go func(cl client) {
+				s.notifier.Notify(cl.Id, s.craftGameStatusNotification())
+			}(cl)
+		}
+	}
+
+	<-c.leave
 	return nil
 }
 
 func (s *server) Leave(ctx context.Context, in *protos.IdMessage) (*protos.LeaveReply, error) {
 	id := in.Id
 	s.notifier.Unregister(id)
+	if c, ok := s.clients[id]; ok {
+		close(c.leave)
+	}
 	delete(s.clients, id)
 	log.Printf("Client %d left", id)
 	return &protos.LeaveReply{}, nil
@@ -98,6 +113,13 @@ func (s *server) Play(ctx context.Context, in *protos.PlayRequest) (*protos.Play
 	}
 	log.Println(c.Sound)
 	s.currentSound = s.nextSound()
+
+	for _, cl := range s.clients {
+		go func(cl client) {
+			s.notifier.Notify(cl.Id, s.craftGameStatusNotification())
+		}(cl)
+	}
+
 	return rep, nil
 }
 
@@ -130,9 +152,9 @@ func (s *server) craftGameStatusNotification() *protos.Notification {
 }
 
 // ---- Client management
-func (s *server) newClient() (Player, error) {
+func (s *server) newClient() (client, error) {
 	if len(s.clients) >= 2 {
-		return Player{}, fmt.Errorf("Server full (%d client already)", len(s.clients))
+		return client{}, fmt.Errorf("Server full (%d client already)", len(s.clients))
 	}
 
 	s.lastId += 1
@@ -145,18 +167,25 @@ func (s *server) newClient() (Player, error) {
 		}
 	}
 
-	return Player{
-		Id:    id,
-		Sound: sound,
-	}, nil
+	c := client{
+		&Player{
+			Id:    id,
+			Sound: sound,
+		},
+		make(chan struct{}),
+	}
+	return c, nil
 }
 
 func (s *server) nextSound() Sound {
-	var sounds []Sound
-	for _, c := range s.clients {
-		sounds = append(sounds, c.Sound)
+	switch s.currentSound {
+	case Ping:
+		return Pong
+	case Pong:
+		return Ping
 	}
 
+	sounds := []Sound{Ping, Pong}
 	src := rand.NewSource(time.Now().UnixNano())
 	gen := rand.New(src)
 	return sounds[gen.Intn(len(sounds))]
