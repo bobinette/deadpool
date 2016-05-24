@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"io"
 	"log"
-	"math/rand"
 	"time"
 
 	"golang.org/x/net/context"
@@ -12,7 +12,7 @@ import (
 	"github.com/bobinette/deadpool/pingpong/protos"
 )
 
-const name = "Ping"
+const name = "Pong"
 
 type Client interface {
 	Connect() error
@@ -74,19 +74,6 @@ func (c *client) Connect() error {
 	c.sound = Sound(rep.Sound)
 	log.Printf("Got id %d, sound %v", c.id, c.sound)
 
-	go func() {
-		src := rand.NewSource(time.Now().UnixNano())
-		gen := rand.New(src)
-		for {
-			time.Sleep(time.Duration(gen.Intn(5)) * time.Second)
-			err := c.play()
-			if err != nil {
-				log.Printf("Error while requesting for game status: %v", err)
-				return
-			}
-		}
-	}()
-
 	return c.monitor(stream)
 }
 
@@ -110,22 +97,35 @@ func (c *client) Disconnect() error {
 func (c *client) monitor(stream protos.PingPong_ConnectClient) error {
 	c.stream = stream
 
-	// Randomly request for game status
-	src := rand.NewSource(time.Now().UnixNano())
-	gen := rand.New(src)
 	for {
-		time.Sleep(time.Duration(gen.Intn(20)) * time.Second)
-		req := protos.IdMessage{Id: c.id}
-		s, err := c.ppc.GetGameStatus(context.Background(), &req)
+		n, err := c.stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
-			log.Printf("Error while requesting for game status: %v", err)
+			log.Printf("Error in monitoring: %v", err)
 			return err
 		}
-		log.Printf("%d messages", len(s.Pingpong))
+		err = c.handle(n)
+		if err != nil {
+			log.Printf("Error handling notification: %v", err)
+			return err
+		}
 	}
 }
 
+func (c *client) handle(n *protos.Notification) error {
+	switch body := n.Body.(type) {
+	case *protos.Notification_GameStatus:
+		if Sound(body.GameStatus.CurrentSound) == c.sound {
+			return c.play()
+		}
+	}
+	return nil
+}
+
 func (c *client) play() error {
+	time.Sleep(3 * time.Second)
 	req := protos.PlayRequest{
 		Id: c.id,
 	}
