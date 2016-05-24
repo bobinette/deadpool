@@ -1,3 +1,3 @@
 install:
-	go get -u github.com/codegangsta/cli
+	go get -u golang.org/x/net/context
 	go get -u google.golang.org/grpc
