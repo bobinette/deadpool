@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package pingpong;
+option go_package = "protos";
+
+import "google/protobuf/timestamp.proto";
+
+service PingPong {
+  // Connects to the server to get an id to use in other messages
+  rpc Connect (ConnectRequest) returns (stream Notification) {}
+  // Connects to the server to get an id to use in other messages
+  rpc Leave (IdMessage) returns (LeaveReply) {}
+
+  // Request a notification from the server
+  rpc GetGameStatus (IdMessage) returns (GameStatus) {}
+
+  // Let the server know the client's move for the game
+  rpc Play (PlayRequest) returns (PlayReply) {}
+}
+
+// ---- Identification message
+message IdMessage {
+  int32 id = 1;
+}
+
+// ---- Connect
+message ConnectRequest {
+  string name = 1;
+}
+
+// ---- Leave
+message LeaveReply {}
+
+// ---- Notification
+message Notification {
+  oneof body {
+    // Welcome event - should be sent once, when the player first connects
+    ConnectReply connect_reply = 1;
+
+    // Game notifications
+    GameEvent game_event = 2;
+    GameStatus game_status = 3;
+  }
+}
+
+message ConnectReply {
+  int32 id = 1;
+  int32 sound = 2;
+}
+
+message GameEvent {
+  int32 sound = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message GameStatus {
+  // The history of the conversation
+  repeated GameEvent pingpong = 1;
+
+  // The sound of the player that is allowed to talk now
+  int32 currentSound = 2;
+}
+
+// ---- Play
+message PlayRequest {
+  // Id of the player
+  int32 id = 1;
+}
+
+message PlayReply {
+  // Acceptation status - was it the player's turn to play?
+  bool accepted = 1;
+}
