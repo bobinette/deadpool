@@ -8,7 +8,7 @@ import "google/protobuf/timestamp.proto";
 service PingPong {
   // Connects to the server to get an id to use in other messages
   rpc Connect (ConnectRequest) returns (stream Notification) {}
-  // Connects to the server to get an id to use in other messages
+  // Disconnect from the server
   rpc Leave (IdMessage) returns (LeaveReply) {}
 
   // Request a notification from the server
