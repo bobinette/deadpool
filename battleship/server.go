@@ -56,7 +56,7 @@ func (s *Server) Connect(in *proto.ConnectRequest, stream proto.Battleship_Conne
 		leave: make(chan struct{}),
 	}
 
-	if err := s.game.SaveDisposition(&c, in.Ships); err != nil {
+	if err := s.game.SaveDisposition(c.ID, in.Ships); err != nil {
 		return err
 	}
 
@@ -126,7 +126,7 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	if in.Position < 0 || in.Position > 100 {
 		return nil, fmt.Errorf("Invalid position %d", in.Position)
 	}
-	t := s.game.RegisterPly(c, in.Position)
+	t := s.game.RegisterPly(c.ID, in.Position)
 
 	if s.current == s.blue.ID {
 		s.current = s.red.ID

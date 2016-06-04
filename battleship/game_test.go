@@ -7,10 +7,6 @@ import (
 )
 
 func TestGame_RegisterPly(t *testing.T) {
-	c := Client{ID: 2}
-	game := Game{
-		ships: map[int32][]*proto.Ship{1: nil, 2: nil},
-	}
 	var tts = map[string]struct {
 		shipTiles []map[int32]bool
 		p         int32
@@ -58,13 +54,61 @@ func TestGame_RegisterPly(t *testing.T) {
 		},
 	}
 
+	var pID int32 = 2
+	game := Game{
+		ships: map[int32][]*proto.Ship{1: nil, 2: nil},
+	}
 	for name, tt := range tts {
 		game.shipTiles = map[int32][]map[int32]bool{
 			1: tt.shipTiles,
 		}
 
-		if r := game.RegisterPly(&c, tt.p); r != tt.expected {
+		if r := game.RegisterPly(pID, tt.p); r != tt.expected {
 			t.Errorf("%s - Incorrect result: expected %d got %d", name, tt.expected, r)
+		}
+	}
+}
+
+func TestGame_Winner(t *testing.T) {
+	var tts = map[string]struct {
+		shipTiles map[int32][]map[int32]bool
+		w         int32
+	}{
+		"Winner is 1": {
+			map[int32][]map[int32]bool{
+				1: []map[int32]bool{
+					{17: true, 18: true, 19: true},
+					{21: true, 22: true, 23: true, 24: false},
+				},
+				2: []map[int32]bool{
+					{33: true, 43: true, 53: true},
+					{81: true, 82: true},
+				},
+			},
+			1,
+		},
+		"No winner": {
+			map[int32][]map[int32]bool{
+				1: []map[int32]bool{
+					{17: true, 18: true, 19: true},
+					{21: true, 22: true, 23: true, 24: false},
+				},
+				2: []map[int32]bool{
+					{33: true, 43: true, 53: true},
+					{81: false, 82: true},
+				},
+			},
+			-1,
+		},
+	}
+
+	game := Game{
+		ships: map[int32][]*proto.Ship{1: nil, 2: nil},
+	}
+	for name, tt := range tts {
+		game.shipTiles = tt.shipTiles
+		if w := game.Winner(); w != tt.w {
+			t.Errorf("%s - Incorrect winner: expected %d got %d", name, tt.w, w)
 		}
 	}
 }

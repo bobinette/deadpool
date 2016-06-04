@@ -61,7 +61,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) SaveDisposition(c *Client, ships []*proto.Ship) error {
+func (g *Game) SaveDisposition(pID int32, ships []*proto.Ship) error {
 	if len(ships) != 5 {
 		return fmt.Errorf("Should have gotten 5 ships, got %d", len(ships))
 	}
@@ -100,34 +100,48 @@ func (g *Game) SaveDisposition(c *Client, ships []*proto.Ship) error {
 		return fmt.Errorf("Superfluous ships detected")
 	}
 
-	g.ships[c.ID] = ships
-	g.shipTiles[c.ID] = shipTiles
+	g.ships[pID] = ships
+	g.shipTiles[pID] = shipTiles
 	board := make(Board, 100)
 	board.AddShips(ships)
 	log.Println(board.String())
 	return nil
 }
 
-func (g *Game) RegisterPly(c *Client, p int32) proto.Tile {
-	oID := g.opponentID(c)
+func (g *Game) RegisterPly(pID, pos int32) proto.Tile {
+	oID := g.opponentID(pID)
 	if oID == -1 {
 		return proto.Tile_UNKNOWN
 	}
 
-	for _, ships := range g.shipTiles[oID] {
-		_, ok := ships[p]
+	for _, ship := range g.shipTiles[oID] {
+		_, ok := ship[pos]
 		if ok {
-			ships[p] = true
-			for _, s := range ships {
-				if !s {
-					return proto.Tile_SHIP
-				}
+			ship[pos] = true
+			if g.sunkenShip(ship) {
+				return proto.Tile_SUNKEN
 			}
-			return proto.Tile_SUNKEN
+			return proto.Tile_SHIP
 		}
 	}
 
 	return proto.Tile_SEA
+}
+
+func (g *Game) Winner() int32 {
+	for pID, ships := range g.shipTiles {
+		allSunken := true
+		for _, ship := range ships {
+			if !g.sunkenShip(ship) {
+				allSunken = false
+				break
+			}
+		}
+		if allSunken {
+			return g.opponentID(pID)
+		}
+	}
+	return -1
 }
 
 func (g *Game) checkShipPosition(ship *proto.Ship) error {
@@ -160,11 +174,20 @@ func (g *Game) checkOverlapping(ships []proto.Ship) error {
 	return nil
 }
 
-func (g *Game) opponentID(c *Client) int32 {
+func (g *Game) opponentID(pID int32) int32 {
 	for id := range g.ships {
-		if id != c.ID {
+		if id != pID {
 			return id
 		}
 	}
 	return -1
+}
+
+func (g *Game) sunkenShip(ship map[int32]bool) bool {
+	for _, s := range ship {
+		if !s {
+			return false
+		}
+	}
+	return true
 }
