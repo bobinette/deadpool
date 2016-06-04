@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package tictactoe;
+option go_package = "protos";
+
+import "google/protobuf/timestamp.proto";
+
+service TicTacToe {
+  // Connects to the server to get an id to use in other messages
+  rpc Connect (ConnectRequest) returns (stream Notification) {}
+  // Disconnect from the server
+  rpc Disconnect (IdMessage) returns (EmptyMessage) {}
+
+  // Play
+  rpc Play (PlayRequest) returns (PlayReply) {}
+
+  // Request game status
+  rpc GetGameStatus (EmptyMessage) returns (GameStatus) {}
+}
+
+// ---- Identification message
+message IdMessage {
+  int32 id = 1;
+}
+
+// ---- Connect
+message ConnectRequest {
+  string name = 1;
+}
+
+// ---- Disconnect
+message EmptyMessage {}
+
+// ---- Notification
+message Notification {
+  oneof body {
+    // Welcome event - should be sent once, when the player first connects
+    ConnectReply connect_reply = 1;
+
+    // Game status - should be sent at game start and each new turn
+    GameStatus game_status = 2;
+  }
+}
+
+message ConnectReply {
+  int32 id = 1;
+  int32 shape = 2;
+}
+
+message GameStatus {
+  int32 current_shape = 1;
+  repeated int32 board = 2;
+  int32 winner = 3;
+}
+
+// ---- Play
+message PlayRequest {
+  int32 id = 1;
+  int32 position = 2;
+}
+
+message PlayReply {
+  enum Status {
+    VALID = 0;
+    WRONG_TURN = 1;
+    POSITION_TAKEN = 2;
+    INVALID_POSITION = 3;
+  }
+  Status status = 1;
+}
