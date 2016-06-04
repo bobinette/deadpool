@@ -1,21 +1,21 @@
 syntax = "proto3";
 
-package pingpong;
+package tictactoe;
 option go_package = "protos";
 
 import "google/protobuf/timestamp.proto";
 
-service PingPong {
+service TicTacToe {
   // Connects to the server to get an id to use in other messages
   rpc Connect (ConnectRequest) returns (stream Notification) {}
   // Disconnect from the server
-  rpc Leave (IdMessage) returns (LeaveReply) {}
+  rpc Disconnect (IdMessage) returns (EmptyMessage) {}
 
-  // Request a notification from the server
-  rpc GetGameStatus (IdMessage) returns (GameStatus) {}
-
-  // Let the server know the client's move for the game
+  // Play
   rpc Play (PlayRequest) returns (PlayReply) {}
+
+  // Request game status
+  rpc GetGameStatus (EmptyMessage) returns (GameStatus) {}
 }
 
 // ---- Identification message
@@ -28,8 +28,8 @@ message ConnectRequest {
   string name = 1;
 }
 
-// ---- Leave
-message LeaveReply {}
+// ---- Disconnect
+message EmptyMessage {}
 
 // ---- Notification
 message Notification {
@@ -37,37 +37,34 @@ message Notification {
     // Welcome event - should be sent once, when the player first connects
     ConnectReply connect_reply = 1;
 
-    // Game notifications
-    GameEvent game_event = 2;
-    GameStatus game_status = 3;
+    // Game status - should be sent at game start and each new turn
+    GameStatus game_status = 2;
   }
 }
 
 message ConnectReply {
   int32 id = 1;
-  int32 sound = 2;
-}
-
-message GameEvent {
-  int32 sound = 1;
-  google.protobuf.Timestamp timestamp = 2;
+  int32 shape = 2;
 }
 
 message GameStatus {
-  // The history of the conversation
-  repeated GameEvent pingpong = 1;
-
-  // The sound of the player that is allowed to talk now
-  int32 currentSound = 2;
+  int32 current_shape = 1;
+  repeated int32 board = 2;
+  int32 winner = 3;
 }
 
 // ---- Play
 message PlayRequest {
-  // Id of the player
   int32 id = 1;
+  int32 position = 2;
 }
 
 message PlayReply {
-  // Acceptation status - was it the player's turn to play?
-  bool accepted = 1;
+  enum Status {
+    VALID = 0;
+    WRONG_TURN = 1;
+    POSITION_TAKEN = 2;
+    INVALID_POSITION = 3;
+  }
+  Status status = 1;
 }
