@@ -75,9 +75,18 @@ func (c *Client) Monitor(stream proto.Battleship_ConnectClient) error {
 			log.Printf("Got id %d", c.ID)
 		// Handle game status
 		case *proto.Notification_GameStatus:
+			if body.GameStatus.Status == c.ID {
+				log.Println("I am the king of the seas")
+				return nil
+			} else if body.GameStatus.Status != -1 {
+				log.Println("I shall do better next time...")
+				return nil
+			}
+
 			if !body.GameStatus.Play {
 				continue
 			}
+
 			if err := c.Play(); err != nil {
 				return err
 			}
