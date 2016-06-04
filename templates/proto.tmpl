@@ -1,11 +1,9 @@
 syntax = "proto3";
 
-package helloworld;
+package {{ .NameLower }};
 option go_package = "protos";
 
-import "google/protobuf/timestamp.proto";
-
-service HelloWorld {
+service {{ .Name }} {
   // Connects to the server to get an id to use in other messages
   rpc Connect (ConnectRequest) returns (IdMessage) {}
   // Let the server know the client is leaving
@@ -14,7 +12,7 @@ service HelloWorld {
   // Subscribe to server-side stream
   rpc Subscribe (IdMessage) returns (stream Notification) {}
   // Request a notification from the server
-  rpc GetGameStatus (IdMessage) returns (GameStatus) {}
+  rpc GetNotification (IdMessage) returns (Notification) {}
 
   // Let the server know the client's move for the game
   rpc Play (PlayRequest) returns (PlayReply) {}
@@ -44,42 +42,17 @@ message LeaveReply {
 
 // ---- Notification
 message Notification {
-  oneof event {
-    GameEvent game_event = 1;
-    GameStatus game_status = 2;
+  // Max number of players
+  int32 max_players = 1;
+  int32 n_players = 2;
 
-    JoinEvent join = 3;
-    LeaveEvent leave = 4;
-    ServerStatus server_status = 5;
-  }
-}
+  // Name of the player joind the world
+  string joined = 3;
 
-message GameEvent {
-  string message = 1;
-  string author = 2;
-  google.protobuf.Timestamp timestamp = 3;
-}
+  // Name of the player leaving the world
+  string left = 4;
 
-message GameStatus {
-  // The history of the conversation
-  repeated GameEvent chat = 1;
-  // The id of the player that is allowed to talk now
-  int32 currentPlayer = 2;
-}
-
-message JoinEvent {
-  string player_name = 1;
-  ServerStatus status = 2;
-}
-
-message LeaveEvent {
-  string player_name = 1;
-  ServerStatus status = 2;
-}
-
-message ServerStatus {
-  int32 max = 1;
-  int32 n = 2;
+  // Game specific fields
 }
 
 // ---- Play
@@ -95,6 +68,6 @@ message PlayReply {
   // Accepted status
   bool accepted = 1;
 
-  // Response message
+  // Error message
   string message = 2;
 }
