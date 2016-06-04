@@ -166,10 +166,19 @@ func (s *Server) ConnectReplyNotification(c *Client) *proto.Notification {
 
 func (s *Server) GameStatusNotification(c *Client) *proto.Notification {
 	play := s.current == c.ID
+	status := proto.GameStatus_PLAYING
+	w := s.game.Winner()
+	if c.ID == w {
+		status = proto.GameStatus_VICTORY
+	} else if w != -1 {
+		status = proto.GameStatus_DEFEAT
+
+	}
 	return &proto.Notification{
 		Body: &proto.Notification_GameStatus{
 			GameStatus: &proto.GameStatus{
-				Play: play,
+				Play:   play,
+				Status: status,
 			},
 		},
 	}

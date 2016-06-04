@@ -53,8 +53,13 @@ message Notification {
 message GameStatus {
   // Whether it is the caller's turn to play or not
   bool play = 1;
-  repeated Tile board = 2;
-  repeated Tile knowledge = 3;
+  // Whether the client has won or not
+  enum Status{
+    PLAYING = 0;
+    VICTORY = 1;
+    DEFEAT = 2;
+  }
+  Status status = 2;
 }
 
 // ---- Play
