@@ -75,10 +75,10 @@ func (c *Client) Monitor(stream proto.Battleship_ConnectClient) error {
 			log.Printf("Got id %d", c.ID)
 		// Handle game status
 		case *proto.Notification_GameStatus:
-			if body.GameStatus.Status == c.ID {
+			if body.GameStatus.Status == proto.GameStatus_VICTORY {
 				log.Println("I am the king of the seas")
 				return nil
-			} else if body.GameStatus.Status != -1 {
+			} else if body.GameStatus.Status == proto.GameStatus_DEFEAT {
 				log.Println("I shall do better next time...")
 				return nil
 			}
@@ -94,13 +94,16 @@ func (c *Client) Monitor(stream proto.Battleship_ConnectClient) error {
 	}
 }
 
-var i = 3
-
 func (c *Client) Play() error {
-	i -= 1
-	if i < 0 {
-		return fmt.Errorf("Finished")
+	return c.play(0)
+}
+
+func (c *Client) play(depth int) error {
+	md := 5
+	if depth >= md {
+		return fmt.Errorf("Maximum depth %d reached...", md)
 	}
+
 	p := c.Player.Play()
 	log.Printf("Playing at position %d", p)
 	req := proto.PlayRequest{
@@ -114,32 +117,13 @@ func (c *Client) Play() error {
 		return err
 	}
 
-	log.Printf("Status: %s", proto.Tile_name[int32(rep.Status)])
-	return nil
-}
-
-type Board []proto.Tile
-
-func (b Board) String() string {
-	s := "\n"
-	s += "------------\n"
-	for i := 0; i < 10; i++ {
-		s += "|"
-		for j := 0; j < 10; j++ {
-			switch b[10*i+j] {
-			case proto.Tile_SEA:
-				s += " "
-			case proto.Tile_UNKNOWN:
-				s += "-"
-			case proto.Tile_SHIP:
-				s += "O"
-			case proto.Tile_SUNKEN:
-				s += "X"
-			}
-		}
-		s += "|"
-		s += "\n"
+	if rep.Status == proto.PlayReply_NOT_YOUR_TURN {
+		log.Println("Seems like it was not my turn. I'll wait")
+	} else if rep.Status == proto.PlayReply_INVALID_POSITION {
+		log.Println("Uh oh... I don't know how to play anymore or what?")
+		return c.play(depth + 1)
 	}
-	s += "------------"
-	return s
+
+	c.Player.SaveResult(p, rep.Tile)
+	return nil
 }

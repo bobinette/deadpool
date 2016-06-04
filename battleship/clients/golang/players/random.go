@@ -1,10 +1,16 @@
 package players
 
 import (
+	"log"
+	"math/rand"
+	"time"
+
 	"github.com/bobinette/deadpool/battleship/proto"
 )
 
-type RandomPlayer struct{}
+type RandomPlayer struct {
+	board Board
+}
 
 func (p RandomPlayer) Name() string {
 	return "Random"
@@ -24,5 +30,20 @@ func (p RandomPlayer) Disposition() []*proto.Ship {
 }
 
 func (p RandomPlayer) Play() int32 {
-	return 0
+	tiles := make([]int, 0, 100)
+	for i, t := range p.board {
+		if t == proto.Tile_UNKNOWN {
+			tiles = append(tiles, i)
+		}
+	}
+
+	src := rand.NewSource(time.Now().UnixNano())
+	gen := rand.New(src)
+
+	return int32(tiles[gen.Intn(len(tiles))])
+}
+
+func (p RandomPlayer) SaveResult(pos int32, tile proto.Tile) {
+	p.board[pos] = tile
+	log.Println(p.board.String())
 }

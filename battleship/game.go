@@ -33,9 +33,9 @@ func (b Board) String() string {
 		for j := 0; j < 10; j++ {
 			switch b[10*i+j] {
 			case proto.Tile_SEA:
-				s += " "
+				s += "~"
 			case proto.Tile_UNKNOWN:
-				s += "-"
+				s += "."
 			case proto.Tile_SHIP:
 				s += "O"
 			case proto.Tile_SUNKEN:

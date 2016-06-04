@@ -120,11 +120,11 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	}
 
 	if in.Id != s.current {
-		return nil, fmt.Errorf("Not your turn")
+		return &proto.PlayReply{Tile: proto.Tile_UNKNOWN, Status: proto.PlayReply_NOT_YOUR_TURN}, nil
 	}
 
 	if in.Position < 0 || in.Position > 100 {
-		return nil, fmt.Errorf("Invalid position %d", in.Position)
+		return &proto.PlayReply{Tile: proto.Tile_UNKNOWN, Status: proto.PlayReply_INVALID_POSITION}, nil
 	}
 	t := s.game.RegisterPly(c.ID, in.Position)
 
@@ -135,7 +135,7 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	}
 	s.DispatchGameStatusNotifications()
 
-	return &proto.PlayReply{Status: t}, nil
+	return &proto.PlayReply{Tile: t, Status: proto.PlayReply_ACCEPTED}, nil
 }
 
 // ----------------------------------------------------------------------------

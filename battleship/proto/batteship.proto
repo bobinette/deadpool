@@ -69,5 +69,11 @@ message PlayRequest {
 }
 
 message PlayReply {
-  Tile status = 1;
+  Tile tile = 1;
+  enum Status {
+    ACCEPTED = 0;
+    NOT_YOUR_TURN = 1;
+    INVALID_POSITION = 2;
+  }
+  Status status = 2;
 }
