@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package battleship;
+option go_package = "proto";
+
+service Battleship {
+  // Connects to the server to get an id to use in other messages
+  rpc Connect (ConnectRequest) returns (stream Notification) {}
+  // Disconnect from the server
+  rpc Disconnect (IdMessage) returns (EmptyMessage) {}
+  // Play
+  rpc Play (PlayRequest) returns (PlayReply) {}
+}
+
+enum Tile {
+  UNKNOWN = 0;
+  SEA = 1;
+  SHIP = 2;
+  SUNKEN = 3;
+};
+
+message Ship {
+  int32 pos = 1;
+  bool vert = 2;
+  int32 size = 3;
+}
+
+// ---- Common
+message IdMessage {
+	int32 id = 1;
+}
+
+message EmptyMessage {}
+
+// ---- Connect
+message ConnectRequest {
+	string name = 1;
+  repeated Ship ships = 2;
+}
+
+// ---- Notifications
+message Notification {
+	oneof body {
+    // Welcome event - should be sent once, when the player first connects
+    IdMessage connect_reply = 1;
+
+    // Game status
+    GameStatus game_status = 2;
+  }
+}
+
+// ---- Game
+message GameStatus {
+  // Whether it is the caller's turn to play or not
+  bool play = 1;
+  repeated Tile board = 2;
+  repeated Tile knowledge = 3;
+}
+
+// ---- Play
+message PlayRequest {
+  int32 id = 1;
+  int32 position = 2;
+}
+
+message PlayReply {
+  Tile status = 1;
+}
