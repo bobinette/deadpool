@@ -35,7 +35,7 @@ func (b Board) String() string {
 				s += "."
 			case proto.Tile_SHIP:
 				s += "O"
-			case proto.Tile_SUNKEN:
+			case proto.Tile_SUNK:
 				s += "X"
 			}
 		}

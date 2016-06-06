@@ -16,7 +16,7 @@ enum Tile {
   UNKNOWN = 0;
   SEA = 1;
   SHIP = 2;
-  SUNKEN = 3;
+  SUNK = 3;
 };
 
 message Ship {

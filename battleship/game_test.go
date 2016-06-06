@@ -13,14 +13,14 @@ func TestGame_RegisterPly(t *testing.T) {
 		p         int32
 		expected  proto.Tile
 	}{
-		"One tile ship sunken": {
+		"One tile ship sunk": {
 			[]map[int32]bool{
 				map[int32]bool{
 					17: false,
 				},
 			},
 			17,
-			proto.Tile_SUNKEN,
+			proto.Tile_SUNK,
 		},
 		"Two tile ship hit": {
 			[]map[int32]bool{
@@ -42,7 +42,7 @@ func TestGame_RegisterPly(t *testing.T) {
 			5,
 			proto.Tile_SEA,
 		},
-		"Three tile ship sunken": {
+		"Three tile ship sunk": {
 			[]map[int32]bool{
 				map[int32]bool{
 					7:  true,
@@ -51,7 +51,7 @@ func TestGame_RegisterPly(t *testing.T) {
 				},
 			},
 			17,
-			proto.Tile_SUNKEN,
+			proto.Tile_SUNK,
 		},
 	}
 

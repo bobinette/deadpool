@@ -38,7 +38,7 @@ func (b Board) String() string {
 				s += "."
 			case proto.Tile_SHIP:
 				s += "O"
-			case proto.Tile_SUNKEN:
+			case proto.Tile_SUNK:
 				s += "X"
 			}
 		}
@@ -118,8 +118,8 @@ func (g *Game) RegisterPly(pID, pos int32) proto.Tile {
 		_, ok := ship[pos]
 		if ok {
 			ship[pos] = true
-			if g.sunkenShip(ship) {
-				return proto.Tile_SUNKEN
+			if g.sunkShip(ship) {
+				return proto.Tile_SUNK
 			}
 			return proto.Tile_SHIP
 		}
@@ -130,14 +130,14 @@ func (g *Game) RegisterPly(pID, pos int32) proto.Tile {
 
 func (g *Game) Winner() int32 {
 	for pID, ships := range g.shipTiles {
-		allSunken := true
+		allSunk := true
 		for _, ship := range ships {
-			if !g.sunkenShip(ship) {
-				allSunken = false
+			if !g.sunkShip(ship) {
+				allSunk = false
 				break
 			}
 		}
-		if allSunken {
+		if allSunk {
 			return g.opponentID(pID)
 		}
 	}
@@ -183,7 +183,7 @@ func (g *Game) opponentID(pID int32) int32 {
 	return -1
 }
 
-func (g *Game) sunkenShip(ship map[int32]bool) bool {
+func (g *Game) sunkShip(ship map[int32]bool) bool {
 	for _, s := range ship {
 		if !s {
 			return false
