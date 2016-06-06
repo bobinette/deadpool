@@ -1,6 +1,7 @@
 package battleship
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/bobinette/deadpool/battleship/proto"
@@ -156,6 +157,69 @@ func TestGame_checkShipPosition(t *testing.T) {
 			t.Errorf("%s - Ship %+v not valid but check raised no error", name, tt.ship)
 		} else if tt.valid && err != nil {
 			t.Errorf("%s - Ship %+v valid but got error %v", name, tt.ship, err)
+		}
+	}
+}
+
+func TestGame_checkOverlapping(t *testing.T) {
+	var tts = map[string]struct {
+		ships []*proto.Ship
+		valid bool
+	}{
+		"One square": {
+			[]*proto.Ship{
+				&proto.Ship{Pos: 5, Size: 1, Vert: false},
+				&proto.Ship{Pos: 5, Size: 1, Vert: false},
+			},
+			false,
+		},
+		"Full set ok": {
+			[]*proto.Ship{
+				&proto.Ship{Pos: 3, Size: 5, Vert: false},
+				&proto.Ship{Pos: 25, Size: 4, Vert: true},
+				&proto.Ship{Pos: 62, Size: 3, Vert: true},
+				&proto.Ship{Pos: 11, Size: 3, Vert: false},
+				&proto.Ship{Pos: 47, Size: 2, Vert: false},
+			},
+			true,
+		},
+	}
+
+	game := Game{}
+	for name, tt := range tts {
+		err := game.checkOverlapping(tt.ships)
+		board := Board(make([]proto.Tile, 100))
+		board.AddShips(tt.ships)
+		if tt.valid && err != nil {
+			t.Errorf("%s - Ships not overlapping but got error %v", name, err)
+			t.Log(board.String())
+		} else if !tt.valid && err == nil {
+			t.Errorf("%s - Ships overlapping but got no error ", name)
+			t.Log(board.String())
+		}
+	}
+}
+
+func TestGame_shipTiles(t *testing.T) {
+	var tts = map[string]struct {
+		ship  proto.Ship
+		tiles []int32
+	}{
+		"Single tile": {
+			proto.Ship{Pos: 6, Size: 1, Vert: false},
+			[]int32{6},
+		},
+		"4 tiles vertical": {
+			proto.Ship{Pos: 52, Size: 4, Vert: true},
+			[]int32{52, 62, 72, 82},
+		},
+	}
+
+	game := Game{}
+	for name, tt := range tts {
+		tiles := game.tilesForShip(tt.ship)
+		if !reflect.DeepEqual(tiles, tt.tiles) {
+			t.Errorf("%s - Invalid tiles from ship: expected %v got %v", name, tt.tiles, tiles)
 		}
 	}
 }

@@ -27,9 +27,9 @@ func (b Board) AddShips(ships []*proto.Ship) {
 
 func (b Board) String() string {
 	s := "\n"
-	s += "------------\n"
+	s += "--0123456789-\n"
 	for i := 0; i < 10; i++ {
-		s += "|"
+		s += fmt.Sprintf("%d|", i)
 		for j := 0; j < 10; j++ {
 			switch b[10*i+j] {
 			case proto.Tile_SEA:
@@ -45,7 +45,7 @@ func (b Board) String() string {
 		s += "|"
 		s += "\n"
 	}
-	s += "------------"
+	s += "--------------"
 	return s
 }
 
@@ -66,6 +66,10 @@ func (g *Game) SaveDisposition(pID int32, ships []*proto.Ship) error {
 		return fmt.Errorf("Should have gotten 5 ships, got %d", len(ships))
 	}
 
+	if err := g.checkOverlapping(ships); err != nil {
+		return err
+	}
+
 	shipTiles := make([]map[int32]bool, len(ships))
 	size := make(map[int32]int32)
 	for i, ship := range ships {
@@ -74,12 +78,8 @@ func (g *Game) SaveDisposition(pID int32, ships []*proto.Ship) error {
 		}
 		size[ship.Size] += 1
 		tiles := make(map[int32]bool, ship.Size)
-		f := 1
-		if ship.Vert {
-			f = 10
-		}
-		for j := 0; j < int(ship.Size); j++ {
-			tiles[ship.Pos+int32(j*f)] = false
+		for _, t := range g.tilesForShip(*ship) {
+			tiles[t] = false
 		}
 		shipTiles[i] = tiles
 	}
@@ -157,18 +157,18 @@ func (g *Game) checkShipPosition(ship *proto.Ship) error {
 	return nil
 }
 
-func (g *Game) checkOverlapping(ships []proto.Ship) error {
-	set := make(map[int32]struct{})
+func (g *Game) checkOverlapping(ships []*proto.Ship) error {
+	set := make(map[int32]int32)
 	for _, ship := range ships {
-		f := 0
+		f := 1
 		if ship.Vert {
 			f = 10
 		}
 		for i := 0; i < int(ship.Size); i++ {
-			if _, ok := set[ship.Pos+int32(i*f)]; ok {
-				return fmt.Errorf("Ships overlap")
+			if s, ok := set[ship.Pos+int32(i*f)]; ok {
+				return fmt.Errorf("Ship of size %d overlaps a ship of size %d", ship.Size, s)
 			}
-			set[ship.Pos+int32(i*f)] = struct{}{}
+			set[ship.Pos+int32(i*f)] = ship.Size
 		}
 	}
 	return nil
@@ -190,4 +190,16 @@ func (g *Game) sunkenShip(ship map[int32]bool) bool {
 		}
 	}
 	return true
+}
+
+func (g *Game) tilesForShip(ship proto.Ship) []int32 {
+	tiles := make([]int32, ship.Size)
+	for i := 0; i < len(tiles); i++ {
+		f := 1
+		if ship.Vert {
+			f = 10
+		}
+		tiles[i] = ship.Pos + int32(f*i)
+	}
+	return tiles
 }

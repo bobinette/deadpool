@@ -3,6 +3,7 @@ package battleship
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -22,6 +23,7 @@ type Server struct {
 	red     *Client
 	lastID  int32
 	current int32
+	locker  sync.Locker
 
 	game     *Game
 	notifier Notifier
@@ -35,6 +37,7 @@ func NewServer() *grpc.Server {
 		red:     nil,
 		lastID:  0,
 		current: 0,
+		locker:  &sync.Mutex{},
 
 		game:     NewGame(),
 		notifier: NewNotifier(),
@@ -83,7 +86,9 @@ func (s *Server) Connect(in *proto.ConnectRequest, stream proto.Battleship_Conne
 	}
 
 	if s.blue != nil && s.red != nil {
+		s.locker.Lock()
 		s.current = s.blue.ID
+		s.locker.Unlock()
 		log.Printf("Let's begin with %d", s.current)
 		s.DispatchGameStatusNotifications()
 	}
@@ -105,6 +110,9 @@ func (s *Server) Disconnect(ctx context.Context, in *proto.IdMessage) (*proto.Em
 		return nil, fmt.Errorf("Unknown id %d", id)
 	}
 
+	s.locker.Lock()
+	s.current = -1
+	s.locker.Unlock()
 	close(c.leave)
 	return &proto.EmptyMessage{}, nil
 }
@@ -128,12 +136,17 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	}
 	t := s.game.RegisterPly(c.ID, in.Position)
 
+	s.locker.Lock()
 	if s.current == s.blue.ID {
 		s.current = s.red.ID
 	} else {
 		s.current = s.blue.ID
 	}
-	s.DispatchGameStatusNotifications()
+	s.locker.Unlock()
+
+	if err := s.DispatchGameStatusNotifications(); err != nil {
+		log.Printf("error dispatching game status notification: %v", err)
+	}
 
 	return &proto.PlayReply{Tile: t, Status: proto.PlayReply_ACCEPTED}, nil
 }
