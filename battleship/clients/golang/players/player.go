@@ -35,7 +35,12 @@ type Player interface {
 func NewPlayer(name string) Player {
 	switch name {
 	case "random":
-		return &RandomPlayer{board: make([]proto.Tile, 100)}
+		return &Random{
+			board: make([]proto.Tile, 100),
+			n:     0,
+		}
+	case "distance_based":
+		return NewDistanceBased(manhattan)
 	}
 	return nil
 }
