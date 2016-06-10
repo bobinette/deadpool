@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/bobinette/deadpool/battleship"
+	"github.com/bobinette/deadpool/pingpong"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	s := battleship.NewServer()
+	s := pingpong.NewServer()
 
 	log.Println("Starting server...")
 	lis, err := net.Listen("tcp", port)

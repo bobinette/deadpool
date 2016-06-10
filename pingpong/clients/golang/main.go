@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -14,6 +15,9 @@ const (
 )
 
 func main() {
+	player := flag.String("player", "", "player that will be used for the game")
+	flag.Parse()
+
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBackoffMaxDelay(2*time.Second))
 	if err != nil {
@@ -29,7 +33,8 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 
-	c := NewClient(conn)
+	log.Println("Dialing...")
+	c := NewClient(conn, *player)
 	go func() {
 		err := c.Connect()
 		if err != nil {
@@ -40,5 +45,5 @@ func main() {
 	defer c.Disconnect()
 
 	<-quit
-	log.Println("Disconnected")
+	log.Println("Done")
 }

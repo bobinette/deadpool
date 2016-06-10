@@ -1,11 +1,11 @@
-package server
+package pingpong
 
 import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/bobinette/deadpool/pingpong/protos"
+	"github.com/bobinette/deadpool/pingpong/proto"
 )
 
 // ----------------------------------------------------------------------------
@@ -41,38 +41,38 @@ type Player struct {
 // ----------------------------------------------------------------------------
 // Game
 type Game interface {
-	Play(Sound) (*protos.PlayReply, error)
-	History() []*protos.GameEvent
+	Play(Sound) (*proto.PlayReply, error)
+	History() []*proto.GameEvent
 }
 
 type game struct {
-	history []*protos.GameEvent
+	history []*proto.GameEvent
 }
 
 func NewGame() Game {
 	return &game{
-		history: make([]*protos.GameEvent, 0),
+		history: make([]*proto.GameEvent, 0),
 	}
 }
 
-func (g *game) Play(s Sound) (*protos.PlayReply, error) {
+func (g *game) Play(s Sound) (*proto.PlayReply, error) {
 	ts, err := ptypes.TimestampProto(time.Now())
 	if err != nil {
 		return nil, err
 	}
 
-	e := &protos.GameEvent{
+	e := &proto.GameEvent{
 		Sound:     int32(s),
 		Timestamp: ts,
 	}
 	g.history = append(g.history, e)
 
-	rep := protos.PlayReply{
+	rep := proto.PlayReply{
 		Accepted: true,
 	}
 	return &rep, nil
 }
 
-func (g *game) History() []*protos.GameEvent {
+func (g *game) History() []*proto.GameEvent {
 	return g.history
 }

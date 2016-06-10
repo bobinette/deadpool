@@ -1,4 +1,4 @@
-package server
+package pingpong
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/bobinette/deadpool/pingpong/protos"
+	"github.com/bobinette/deadpool/pingpong/proto"
 )
 
 type server struct {
@@ -41,11 +41,11 @@ func NewServer() *grpc.Server {
 		notifier: NewNotifier(),
 		game:     NewGame(),
 	}
-	protos.RegisterPingPongServer(s, &pps)
+	proto.RegisterPingPongServer(s, &pps)
 	return s
 }
 
-func (s *server) Connect(in *protos.ConnectRequest, stream protos.PingPong_ConnectServer) error {
+func (s *server) Connect(in *proto.ConnectRequest, stream proto.PingPong_ConnectServer) error {
 	// Remember client
 	c, err := s.newClient()
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *server) Connect(in *protos.ConnectRequest, stream protos.PingPong_Conne
 	return nil
 }
 
-func (s *server) Leave(ctx context.Context, in *protos.IdMessage) (*protos.LeaveReply, error) {
+func (s *server) Disconnect(ctx context.Context, in *proto.IdMessage) (*proto.DisconnectReply, error) {
 	id := in.Id
 	s.notifier.Unregister(id)
 	if c, ok := s.clients[id]; ok {
@@ -86,16 +86,16 @@ func (s *server) Leave(ctx context.Context, in *protos.IdMessage) (*protos.Leave
 	}
 	delete(s.clients, id)
 	log.Printf("Client %d left", id)
-	return &protos.LeaveReply{}, nil
+	return &proto.DisconnectReply{}, nil
 }
 
-func (s *server) GetGameStatus(ctx context.Context, in *protos.IdMessage) (*protos.GameStatus, error) {
+func (s *server) GetGameStatus(ctx context.Context, in *proto.IdMessage) (*proto.GameStatus, error) {
 	status := s.craftGameStatus()
 	// log.Printf("%d requested the game status", in.Id)
 	return status, nil
 }
 
-func (s *server) Play(ctx context.Context, in *protos.PlayRequest) (*protos.PlayReply, error) {
+func (s *server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayReply, error) {
 	id := in.Id
 
 	c, ok := s.clients[id]
@@ -104,7 +104,7 @@ func (s *server) Play(ctx context.Context, in *protos.PlayRequest) (*protos.Play
 	}
 
 	if c.Sound != s.currentSound {
-		return &protos.PlayReply{Accepted: false}, nil
+		return &proto.PlayReply{Accepted: false}, nil
 	}
 
 	rep, err := s.game.Play(c.Sound)
@@ -124,28 +124,28 @@ func (s *server) Play(ctx context.Context, in *protos.PlayRequest) (*protos.Play
 }
 
 // ---- Notification crafting
-func (s *server) craftConnectReply(id int32, sound Sound) *protos.Notification {
-	n := &protos.ConnectReply{
+func (s *server) craftConnectReply(id int32, sound Sound) *proto.Notification {
+	n := &proto.ConnectReply{
 		Id:    id,
 		Sound: int32(sound),
 	}
-	return &protos.Notification{
-		Body: &protos.Notification_ConnectReply{
+	return &proto.Notification{
+		Body: &proto.Notification_ConnectReply{
 			ConnectReply: n,
 		},
 	}
 }
 
-func (s *server) craftGameStatus() *protos.GameStatus {
-	return &protos.GameStatus{
+func (s *server) craftGameStatus() *proto.GameStatus {
+	return &proto.GameStatus{
 		Pingpong:     s.game.History(),
 		CurrentSound: int32(s.currentSound),
 	}
 }
 
-func (s *server) craftGameStatusNotification() *protos.Notification {
-	return &protos.Notification{
-		Body: &protos.Notification_GameStatus{
+func (s *server) craftGameStatusNotification() *proto.Notification {
+	return &proto.Notification{
+		Body: &proto.Notification_GameStatus{
 			GameStatus: s.craftGameStatus(),
 		},
 	}

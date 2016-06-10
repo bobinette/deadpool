@@ -9,7 +9,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/bobinette/deadpool/pingpong/protos"
+	"github.com/bobinette/deadpool/pingpong/clients/golang/players"
+	"github.com/bobinette/deadpool/pingpong/proto"
 )
 
 const name = "Pong"
@@ -40,21 +41,22 @@ func (s Sound) String() string {
 }
 
 type client struct {
-	id    int32
-	sound Sound
-	ppc   protos.PingPongClient
+	id     int32
+	sound  Sound
+	player players.Player
 
-	stream protos.PingPong_ConnectClient
+	ppc proto.PingPongClient
 }
 
-func NewClient(cc *grpc.ClientConn) Client {
+func NewClient(cc *grpc.ClientConn, player string) Client {
 	return &client{
-		ppc: protos.NewPingPongClient(cc),
+		player: players.NewPlayer(player),
+		ppc:    proto.NewPingPongClient(cc),
 	}
 }
 
 func (c *client) Connect() error {
-	stream, err := c.ppc.Connect(context.Background(), &protos.ConnectRequest{Name: name})
+	stream, err := c.ppc.Connect(context.Background(), &proto.ConnectRequest{Name: name})
 	if err != nil {
 		return err
 	}
@@ -74,31 +76,23 @@ func (c *client) Connect() error {
 	c.sound = Sound(rep.Sound)
 	log.Printf("Got id %d, sound %v", c.id, c.sound)
 
-	return c.monitor(stream)
+	return c.Monitor(stream)
 }
 
 func (c *client) Disconnect() error {
-	// Close stream
-	err := c.stream.CloseSend()
-	if err != nil {
-		log.Printf("Error closing stream: %v", err)
-		return err
-	}
-	log.Println("Stream closed")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	if _, err := c.ppc.Leave(ctx, &protos.IdMessage{Id: c.id}); err != nil {
+	if _, err := c.ppc.Disconnect(ctx, &proto.IdMessage{Id: c.id}); err != nil {
 		return err
 	}
+
+	log.Println("Disconnection succesful")
 	return nil
 }
 
-func (c *client) monitor(stream protos.PingPong_ConnectClient) error {
-	c.stream = stream
-
+func (c *client) Monitor(stream proto.PingPong_ConnectClient) error {
 	for {
-		n, err := c.stream.Recv()
+		n, err := stream.Recv()
 		if err == io.EOF {
 			return nil
 		}
@@ -106,7 +100,7 @@ func (c *client) monitor(stream protos.PingPong_ConnectClient) error {
 			log.Printf("Error in monitoring: %v", err)
 			return err
 		}
-		err = c.handle(n)
+		err = c.Handle(n)
 		if err != nil {
 			log.Printf("Error handling notification: %v", err)
 			return err
@@ -114,19 +108,19 @@ func (c *client) monitor(stream protos.PingPong_ConnectClient) error {
 	}
 }
 
-func (c *client) handle(n *protos.Notification) error {
+func (c *client) Handle(n *proto.Notification) error {
 	switch body := n.Body.(type) {
-	case *protos.Notification_GameStatus:
+	case *proto.Notification_GameStatus:
 		if Sound(body.GameStatus.CurrentSound) == c.sound {
-			return c.play()
+			return c.Play()
 		}
 	}
 	return nil
 }
 
-func (c *client) play() error {
-	time.Sleep(3 * time.Second)
-	req := protos.PlayRequest{
+func (c *client) Play() error {
+	c.player.Play()
+	req := proto.PlayRequest{
 		Id: c.id,
 	}
 

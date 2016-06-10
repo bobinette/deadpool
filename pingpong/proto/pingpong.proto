@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package pingpong;
-option go_package = "protos";
+option go_package = "proto";
 
 import "google/protobuf/timestamp.proto";
 
@@ -9,7 +9,7 @@ service PingPong {
   // Connects to the server to get an id to use in other messages
   rpc Connect (ConnectRequest) returns (stream Notification) {}
   // Disconnect from the server
-  rpc Leave (IdMessage) returns (LeaveReply) {}
+  rpc Disconnect (IdMessage) returns (DisconnectReply) {}
 
   // Request a notification from the server
   rpc GetGameStatus (IdMessage) returns (GameStatus) {}
@@ -28,8 +28,8 @@ message ConnectRequest {
   string name = 1;
 }
 
-// ---- Leave
-message LeaveReply {}
+// ---- Disconnect
+message DisconnectReply {}
 
 // ---- Notification
 message Notification {
