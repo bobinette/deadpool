@@ -27,6 +27,7 @@ type Server struct {
 
 	game     *Game
 	notifier Notifier
+	plies    int
 }
 
 func NewServer() *grpc.Server {
@@ -41,6 +42,7 @@ func NewServer() *grpc.Server {
 
 		game:     NewGame(),
 		notifier: NewNotifier(),
+		plies:    0,
 	}
 	proto.RegisterBattleshipServer(s, &srv)
 
@@ -87,6 +89,7 @@ func (s *Server) Connect(in *proto.ConnectRequest, stream proto.Battleship_Conne
 
 	if s.blue != nil && s.red != nil {
 		s.locker.Lock()
+		s.plies = 0
 		s.current = s.blue.ID
 		s.locker.Unlock()
 		log.Printf("Let's begin with %d", s.current)
@@ -134,7 +137,13 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	if in.Position < 0 || in.Position > 100 {
 		return &proto.PlayReply{Tile: proto.Tile_UNKNOWN, Status: proto.PlayReply_INVALID_POSITION}, nil
 	}
+
 	t := s.game.RegisterPly(c.ID, in.Position)
+	if t == proto.Tile_SHIP {
+		log.Printf("Player %d touched at %d", c.ID, in.Position)
+	} else if t == proto.Tile_SUNK {
+		log.Printf("Player %d sank a ship at %d", c.ID, in.Position)
+	}
 
 	s.locker.Lock()
 	if s.current == s.blue.ID {
@@ -142,11 +151,21 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	} else {
 		s.current = s.blue.ID
 	}
-	s.locker.Unlock()
+	s.plies += 1
 
 	if err := s.DispatchGameStatusNotifications(); err != nil {
 		log.Printf("error dispatching game status notification: %v", err)
 	}
+
+	w := s.game.Winner()
+	if w == s.blue.ID {
+		log.Printf("Blue won in %d plies", s.plies)
+		s.game = NewGame()
+	} else if w == s.red.ID {
+		log.Printf("Red won in %d plies", s.plies)
+		s.game = NewGame()
+	}
+	s.locker.Unlock()
 
 	return &proto.PlayReply{Tile: t, Status: proto.PlayReply_ACCEPTED}, nil
 }
