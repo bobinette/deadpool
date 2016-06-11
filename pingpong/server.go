@@ -2,7 +2,6 @@ package pingpong
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"time"
 
@@ -20,8 +19,12 @@ type server struct {
 	// Id of the client that can play
 	currentSound Sound
 
+	maxPlies int
+	plies    int
+
 	notifier Notifier
 	game     Game
+	logger   Logger
 }
 
 type client struct {
@@ -33,13 +36,18 @@ type client struct {
 func NewServer() *grpc.Server {
 	s := grpc.NewServer()
 
+	logger := TerminalLogger{}
 	pps := server{
 		clients:      make(map[int32]client),
 		lastId:       0,
 		currentSound: Silence,
 
+		maxPlies: 0,
+		plies:    0,
+
 		notifier: NewNotifier(),
 		game:     NewGame(),
+		logger:   &logger,
 	}
 	proto.RegisterPingPongServer(s, &pps)
 	return s
@@ -47,12 +55,12 @@ func NewServer() *grpc.Server {
 
 func (s *server) Connect(in *proto.ConnectRequest, stream proto.PingPong_ConnectServer) error {
 	// Remember client
-	c, err := s.newClient()
+	c, err := s.newClient(in.Name)
 	if err != nil {
 		return err
 	}
 	s.clients[c.Id] = c
-	log.Printf("New client: %s (%d)", in.Name, c.Id)
+	s.logger.Log(EventConnect, c.Player)
 
 	// Register client
 	s.notifier.Register(c.Id, stream)
@@ -60,12 +68,17 @@ func (s *server) Connect(in *proto.ConnectRequest, stream proto.PingPong_Connect
 	// Send back it's id to the player
 	n := s.craftConnectReply(c.Id, c.Sound)
 	if err := s.notifier.Notify(c.Id, n); err != nil {
-		log.Printf("Error notifying %s (%d): %v", in.Name, c.Id, err)
+		s.logger.Errorf("Error notifying %s (%d): %v", in.Name, c.Id, err)
 		return err
 	}
 
 	if len(s.clients) >= 2 {
-		log.Println("Starting game...")
+		src := rand.NewSource(time.Now().UnixNano())
+		gen := rand.New(src)
+
+		s.maxPlies = gen.Intn(81) + 20
+		s.logger.Log(EventGameStart, s.maxPlies)
+
 		s.currentSound = s.nextSound()
 		for _, cl := range s.clients {
 			go func(cl client) {
@@ -83,9 +96,9 @@ func (s *server) Disconnect(ctx context.Context, in *proto.IdMessage) (*proto.Di
 	s.notifier.Unregister(id)
 	if c, ok := s.clients[id]; ok {
 		close(c.leave)
+		s.logger.Log(EventDisconnect, c.Player)
 	}
 	delete(s.clients, id)
-	log.Printf("Client %d left", id)
 	return &proto.DisconnectReply{}, nil
 }
 
@@ -111,13 +124,22 @@ func (s *server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	if err != nil {
 		return nil, err
 	}
-	log.Println(c.Sound)
-	s.currentSound = s.nextSound()
+	s.plies += 1
+	s.logger.Log(EventPly, c.Player, s.plies)
 
-	for _, cl := range s.clients {
-		go func(cl client) {
-			s.notifier.Notify(cl.Id, s.craftGameStatusNotification())
-		}(cl)
+	if s.plies >= s.maxPlies {
+		for _, c := range s.clients {
+			close(c.leave)
+		}
+		s.logger.Log(EventGameOver, s.plies)
+	} else {
+		s.currentSound = s.nextSound()
+
+		for _, cl := range s.clients {
+			go func(cl client) {
+				s.notifier.Notify(cl.Id, s.craftGameStatusNotification())
+			}(cl)
+		}
 	}
 
 	return rep, nil
@@ -152,7 +174,7 @@ func (s *server) craftGameStatusNotification() *proto.Notification {
 }
 
 // ---- Client management
-func (s *server) newClient() (client, error) {
+func (s *server) newClient(name string) (client, error) {
 	if len(s.clients) >= 2 {
 		return client{}, fmt.Errorf("Server full (%d client already)", len(s.clients))
 	}
@@ -171,6 +193,7 @@ func (s *server) newClient() (client, error) {
 		&Player{
 			Id:    id,
 			Sound: sound,
+			Name:  name,
 		},
 		make(chan struct{}),
 	}

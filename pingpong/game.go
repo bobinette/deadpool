@@ -36,6 +36,7 @@ func (s Sound) String() string {
 type Player struct {
 	Id    int32
 	Sound Sound
+	Name  string
 }
 
 // ----------------------------------------------------------------------------
