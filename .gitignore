@@ -1,2 +1,3 @@
 # Ignore latex generated files
 **/Output/
+**/*.synctex.gz

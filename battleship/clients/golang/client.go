@@ -9,21 +9,24 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/bobinette/deadpool/battleship/clients/golang/disposers"
 	"github.com/bobinette/deadpool/battleship/clients/golang/players"
 	"github.com/bobinette/deadpool/battleship/proto"
 )
 
 type Client struct {
-	ID     int32
-	Player players.Player
+	ID       int32
+	Player   players.Player
+	Disposer disposers.Disposer
 
 	bc proto.BattleshipClient
 }
 
-func NewClient(cc *grpc.ClientConn, player string) *Client {
+func NewClient(cc *grpc.ClientConn, player, disposer string) *Client {
 	return &Client{
-		bc:     proto.NewBattleshipClient(cc),
-		Player: players.NewPlayer(player),
+		bc:       proto.NewBattleshipClient(cc),
+		Player:   players.NewPlayer(player),
+		Disposer: disposers.NewDisposer(disposer),
 	}
 }
 
@@ -34,7 +37,7 @@ func (c *Client) Connect() error {
 
 	req := &proto.ConnectRequest{
 		Name:  c.Player.Name(),
-		Ships: c.Player.Disposition(),
+		Ships: c.Disposer.Dispose(),
 	}
 	stream, err := c.bc.Connect(context.Background(), req)
 	if err != nil {

@@ -1,6 +1,7 @@
 package battleship
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"sync"
@@ -25,13 +26,26 @@ type Server struct {
 	current int32
 	locker  sync.Locker
 
-	game     *Game
 	notifier Notifier
+
+	maxGames int // Maximum number of games to play
+	nGames   int // Number of games already played
+	game     *Game
 	plies    int
+}
+
+var maxGames = 1
+
+func init() {
+	flag.IntVar(&maxGames, "games", maxGames, "The number of games to be played in a row")
 }
 
 func NewServer() *grpc.Server {
 	s := grpc.NewServer()
+
+	if maxGames <= 0 {
+		maxGames = 1
+	}
 
 	srv := Server{
 		blue:    nil,
@@ -40,11 +54,16 @@ func NewServer() *grpc.Server {
 		current: 0,
 		locker:  &sync.Mutex{},
 
-		game:     NewGame(),
 		notifier: NewNotifier(),
+
+		maxGames: maxGames,
+		nGames:   0,
+		game:     NewGame(),
 		plies:    0,
 	}
 	proto.RegisterBattleshipServer(s, &srv)
+
+	log.Printf("Will play %d games", srv.maxGames)
 
 	return s
 }

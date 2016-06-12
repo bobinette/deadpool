@@ -1,10 +1,8 @@
 package players
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
-	"time"
 
 	"github.com/bobinette/deadpool/battleship/proto"
 )
@@ -87,43 +85,6 @@ func (p *DistanceBased) Name() string {
 	return "Distance Based"
 }
 
-func (p *DistanceBased) Disposition() []*proto.Ship {
-	sizes := []int{5, 4, 3, 3, 2}
-	ships := make([]*proto.Ship, len(sizes))
-
-	src := rand.NewSource(time.Now().UnixNano())
-	gen := rand.New(src)
-
-	valid := false
-	for !valid {
-		for i, s := range sizes {
-			major := gen.Intn(10 - s)
-			minor := gen.Intn(10)
-			v := gen.Intn(2) == 0
-
-			p := 0
-			if v {
-				p = 10*major + minor
-			} else {
-				p = major + 10*minor
-			}
-			ships[i] = &proto.Ship{
-				Pos:  int32(p),
-				Vert: v,
-				Size: int32(s),
-			}
-		}
-		valid = IsDispositionValid(ships)
-		if !valid {
-			log.Println("Disposition not valid, retrying")
-		}
-	}
-	board := Board(make([]proto.Tile, 100))
-	board.PlaceShips(ships)
-	log.Printf("Settled for:%s", board.String())
-	return ships
-}
-
 func (p *DistanceBased) Play() int32 {
 	pos := -1
 	var max float64 = 0
@@ -168,7 +129,9 @@ func (p *DistanceBased) SaveResult(pos int32, tile proto.Tile) {
 		}
 
 		for _, a := range p.adjacentTiles(int32(i)) {
-			p.scores[a] = max
+			if p.board[a] == proto.Tile_UNKNOWN {
+				p.scores[a] = max
+			}
 		}
 	}
 
@@ -192,19 +155,4 @@ func (p *DistanceBased) adjacentTiles(i int32) []int32 {
 	}
 
 	return adj
-}
-
-func (p *DistanceBased) ScoreMapString() string {
-	s := "\n"
-	var x int32
-	var y int32
-	for x = 0; x < 10; x++ {
-		for y = 0; y < 10; y++ {
-			i := Pos{x: x, y: y}.ToLinear()
-			s += fmt.Sprintf("|%2.2f", p.scores[i])
-		}
-		s += "|"
-		s += "\n"
-	}
-	return s
 }

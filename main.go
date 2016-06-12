@@ -1,12 +1,16 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"google.golang.org/grpc"
+
+	"github.com/bobinette/deadpool/battleship"
 	"github.com/bobinette/deadpool/pingpong"
 )
 
@@ -15,7 +19,21 @@ const (
 )
 
 func main() {
-	s := pingpong.NewServer()
+	// The servers might register their own flags
+	flag.Parse()
+
+	var s *grpc.Server
+
+	game := os.Args[len(os.Args)-1] // Game name is the last command line arg
+	switch game {
+	case "battleship":
+		s = battleship.NewServer()
+	case "pingpong":
+		s = pingpong.NewServer()
+	default:
+		log.Printf("Nice try! But game %s is not available", game)
+		return
+	}
 
 	log.Println("Starting server...")
 	lis, err := net.Listen("tcp", port)

@@ -47,22 +47,3 @@ func (b Board) String() string {
 	s += "-------------"
 	return s
 }
-
-// ----------------------------------------------------------------------------
-// Check disposition
-func IsDispositionValid(ships []*proto.Ship) bool {
-	set := make(map[int32]int32)
-	for _, ship := range ships {
-		f := 1
-		if ship.Vert {
-			f = 10
-		}
-		for i := 0; i < int(ship.Size); i++ {
-			if _, ok := set[ship.Pos+int32(i*f)]; ok {
-				return false
-			}
-			set[ship.Pos+int32(i*f)] = ship.Size
-		}
-	}
-	return true
-}
