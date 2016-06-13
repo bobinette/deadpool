@@ -16,7 +16,7 @@ const (
 
 func main() {
 	player := flag.String("player", "random", "player that will be used for the game")
-	disposer := flag.String("disposer", "random", "disposer that will be used for the game")
+	placer := flag.String("placer", "random", "placer that will be used for the game")
 	flag.Parse()
 
 	// Set up a connection to the server.
@@ -35,7 +35,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 
 	log.Println("Dialing...")
-	c := NewClient(conn, *player, *disposer)
+	c := NewClient(conn, *player, *placer)
 	go func() {
 		err := c.Connect()
 		if err != nil {

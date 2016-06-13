@@ -9,35 +9,33 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/bobinette/deadpool/battleship/clients/golang/disposers"
+	"github.com/bobinette/deadpool/battleship/clients/golang/placers"
 	"github.com/bobinette/deadpool/battleship/clients/golang/players"
 	"github.com/bobinette/deadpool/battleship/proto"
 )
 
 type Client struct {
-	ID       int32
-	Player   players.Player
-	Disposer disposers.Disposer
+	ID     int32
+	Player players.Player
+	Placer placers.Placer
+
+	playerName string
+	placerName string
 
 	bc proto.BattleshipClient
 }
 
-func NewClient(cc *grpc.ClientConn, player, disposer string) *Client {
+func NewClient(cc *grpc.ClientConn, player, placer string) *Client {
 	return &Client{
-		bc:       proto.NewBattleshipClient(cc),
-		Player:   players.NewPlayer(player),
-		Disposer: disposers.NewDisposer(disposer),
+		bc:         proto.NewBattleshipClient(cc),
+		playerName: player,
+		placerName: placer,
 	}
 }
 
 func (c *Client) Connect() error {
-	if c.Player == nil {
-		return fmt.Errorf("No player selected, cannot connect")
-	}
-
 	req := &proto.ConnectRequest{
-		Name:  c.Player.Name(),
-		Ships: c.Disposer.Dispose(),
+		Name: c.playerName,
 	}
 	stream, err := c.bc.Connect(context.Background(), req)
 	if err != nil {
@@ -80,10 +78,10 @@ func (c *Client) Monitor(stream proto.Battleship_ConnectClient) error {
 		case *proto.Notification_GameStatus:
 			if body.GameStatus.Status == proto.GameStatus_VICTORY {
 				log.Println("I am the king of the seas")
-				return nil
+				continue
 			} else if body.GameStatus.Status == proto.GameStatus_DEFEAT {
 				log.Println("I shall do better next time...")
-				return nil
+				continue
 			}
 
 			if !body.GameStatus.Play {
@@ -92,6 +90,22 @@ func (c *Client) Monitor(stream proto.Battleship_ConnectClient) error {
 
 			if err := c.Play(); err != nil {
 				return err
+			}
+		// Handle game start
+		case *proto.Notification_GameWillStart:
+			c.Player = players.NewPlayer(c.playerName)
+			c.Placer = placers.NewPlacer(c.placerName)
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			rep, err := c.bc.Place(ctx, &proto.PlaceRequest{
+				Id:    c.ID,
+				Ships: c.Placer.Place(),
+			})
+			if err != nil {
+				return err
+			}
+			if !rep.Valid {
+				return fmt.Errorf("Placement invalid...")
 			}
 		}
 	}

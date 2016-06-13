@@ -56,12 +56,16 @@ type Game struct {
 
 func NewGame() *Game {
 	return &Game{
-		ships:     make(map[int32][]*proto.Ship),
-		shipTiles: make(map[int32][]map[int32]bool),
+		ships:     make(map[int32][]*proto.Ship, 2),
+		shipTiles: make(map[int32][]map[int32]bool, 2),
 	}
 }
 
-func (g *Game) SaveDisposition(pID int32, ships []*proto.Ship) error {
+func (g *Game) SavePlacement(pID int32, ships []*proto.Ship) error {
+	if _, ok := g.ships[pID]; ok {
+		return fmt.Errorf("Cannot modify placement")
+	}
+
 	if len(ships) != 5 {
 		return fmt.Errorf("Should have gotten 5 ships, got %d", len(ships))
 	}

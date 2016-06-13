@@ -1,11 +1,11 @@
-package disposers
+package placers
 
 import (
 	"github.com/bobinette/deadpool/battleship/proto"
 )
 
-type Disposer interface {
-	// Disposition returns the position occupied by the ships as determined
+type Placer interface {
+	// Placement returns the position occupied by the ships as determined
 	// by the player. It should be an array of 17 integers representing:
 	//
 	//             Ship | Size
@@ -17,10 +17,10 @@ type Disposer interface {
 	//      Patrol boat |   2
 	// -----------------|------
 	//            Total |  17
-	Dispose() []*proto.Ship
+	Place() []*proto.Ship
 }
 
-func NewDisposer(name string) Disposer {
+func NewPlacer(name string) Placer {
 	switch name {
 	case "random":
 		return &Random{}
@@ -29,8 +29,8 @@ func NewDisposer(name string) Disposer {
 }
 
 // ----------------------------------------------------------------------------
-// Check disposition
-func IsDispositionValid(ships []*proto.Ship) bool {
+// Check Placement
+func IsPlacementValid(ships []*proto.Ship) bool {
 	set := make(map[int32]int32)
 	for _, ship := range ships {
 		f := 1

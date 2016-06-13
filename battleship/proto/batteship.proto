@@ -8,8 +8,11 @@ service Battleship {
   rpc Connect (ConnectRequest) returns (stream Notification) {}
   // Disconnect from the server
   rpc Disconnect (IdMessage) returns (EmptyMessage) {}
+
   // Play
   rpc Play (PlayRequest) returns (PlayReply) {}
+  // Register ship placement
+  rpc Place (PlaceRequest) returns (PlaceReply) {}
 }
 
 enum Tile {
@@ -35,7 +38,6 @@ message EmptyMessage {}
 // ---- Connect
 message ConnectRequest {
 	string name = 1;
-  repeated Ship ships = 2;
 }
 
 // ---- Notifications
@@ -46,6 +48,9 @@ message Notification {
 
     // Game status
     GameStatus game_status = 2;
+
+    // Used to notify the clients the game will start
+    EmptyMessage game_will_start = 3;
   }
 }
 
@@ -76,4 +81,14 @@ message PlayReply {
     INVALID_POSITION = 2;
   }
   Status status = 2;
+}
+
+// ---- Place
+message PlaceRequest {
+  int32 id = 1;
+  repeated Ship ships = 2;
+}
+
+message PlaceReply {
+  bool valid = 1;
 }

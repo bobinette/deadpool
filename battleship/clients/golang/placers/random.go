@@ -1,4 +1,4 @@
-package disposers
+package placers
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 
 type Random struct{}
 
-func (p *Random) Dispose() []*proto.Ship {
+func (p *Random) Place() []*proto.Ship {
 	sizes := []int{5, 4, 3, 3, 2}
 	ships := make([]*proto.Ship, len(sizes))
 
@@ -36,7 +36,7 @@ func (p *Random) Dispose() []*proto.Ship {
 				Size: int32(s),
 			}
 		}
-		valid = IsDispositionValid(ships)
+		valid = IsPlacementValid(ships)
 		if !valid {
 			log.Println("Disposition not valid, retrying")
 		}

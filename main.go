@@ -23,11 +23,12 @@ func main() {
 	flag.Parse()
 
 	var s *grpc.Server
+	var stop <-chan error
 
 	game := os.Args[len(os.Args)-1] // Game name is the last command line arg
 	switch game {
 	case "battleship":
-		s = battleship.NewServer()
+		s, stop = battleship.NewServer()
 	case "pingpong":
 		s = pingpong.NewServer()
 	default:
@@ -48,6 +49,17 @@ func main() {
 		<-quit
 		s.Stop()
 	}()
+
+	if stop != nil {
+		log.Println("Will stop automatically")
+		go func() {
+			err := <-stop
+			if err != nil {
+				log.Println(err)
+			}
+			close(quit)
+		}()
+	}
 
 	log.Printf("Listening on %s...", lis.Addr())
 	s.Serve(lis)

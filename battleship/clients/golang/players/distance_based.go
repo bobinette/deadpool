@@ -81,10 +81,6 @@ func NewDistanceBased(dist Distance) Player {
 	}
 }
 
-func (p *DistanceBased) Name() string {
-	return "Distance Based"
-}
-
 func (p *DistanceBased) Play() int32 {
 	pos := -1
 	var max float64 = 0

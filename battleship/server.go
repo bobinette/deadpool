@@ -13,15 +13,15 @@ import (
 )
 
 type Client struct {
-	Name string
-	ID   int32
+	Name   string
+	ID     int32
+	Placed bool
 
 	leave chan struct{}
 }
 
 type Server struct {
-	blue    *Client
-	red     *Client
+	clients map[int32]*Client
 	lastID  int32
 	current int32
 	locker  sync.Locker
@@ -32,6 +32,8 @@ type Server struct {
 	nGames   int // Number of games already played
 	game     *Game
 	plies    int
+
+	stopCh chan error
 }
 
 var maxGames = 1
@@ -40,7 +42,7 @@ func init() {
 	flag.IntVar(&maxGames, "games", maxGames, "The number of games to be played in a row")
 }
 
-func NewServer() *grpc.Server {
+func NewServer() (*grpc.Server, <-chan error) {
 	s := grpc.NewServer()
 
 	if maxGames <= 0 {
@@ -48,8 +50,7 @@ func NewServer() *grpc.Server {
 	}
 
 	srv := Server{
-		blue:    nil,
-		red:     nil,
+		clients: make(map[int32]*Client, 2),
 		lastID:  0,
 		current: 0,
 		locker:  &sync.Mutex{},
@@ -58,47 +59,41 @@ func NewServer() *grpc.Server {
 
 		maxGames: maxGames,
 		nGames:   0,
-		game:     NewGame(),
+		game:     nil,
 		plies:    0,
+
+		stopCh: make(chan error, 1),
 	}
 	proto.RegisterBattleshipServer(s, &srv)
-
 	log.Printf("Will play %d games", srv.maxGames)
 
-	return s
+	ch := make(chan error, 1)
+	go func() {
+		err := <-srv.stopCh
+		for _, c := range srv.clients {
+			c.leave <- struct{}{}
+		}
+		ch <- err
+	}()
+
+	return s, ch
 }
 
 func (s *Server) Connect(in *proto.ConnectRequest, stream proto.Battleship_ConnectServer) error {
-	if s.blue != nil && s.red != nil {
+	if len(s.clients) >= 2 {
 		return fmt.Errorf("2 clients already connected")
 	}
 
 	s.lastID += 1
 	c := Client{
-		ID:    s.lastID,
-		Name:  in.Name,
-		leave: make(chan struct{}),
+		ID:     s.lastID,
+		Name:   in.Name,
+		Placed: false,
+		leave:  make(chan struct{}),
 	}
 
-	if err := s.game.SaveDisposition(c.ID, in.Ships); err != nil {
-		return err
-	}
-
-	if s.blue == nil {
-		s.blue = &c
-		defer func() {
-			s.blue = nil
-			log.Println("A Blue has no name")
-		}()
-		log.Printf("Blue is %s (%d)", c.Name, c.ID)
-	} else {
-		s.red = &c
-		defer func() {
-			s.red = nil
-			log.Println("A Red has no name")
-		}()
-		log.Printf("Red is %s (%d)", c.Name, c.ID)
-	}
+	s.clients[c.ID] = &c
+	defer delete(s.clients, c.ID)
 
 	s.notifier.Register(&c, stream)
 	defer s.notifier.Unregister(&c)
@@ -106,13 +101,9 @@ func (s *Server) Connect(in *proto.ConnectRequest, stream proto.Battleship_Conne
 		return err
 	}
 
-	if s.blue != nil && s.red != nil {
-		s.locker.Lock()
-		s.plies = 0
-		s.current = s.blue.ID
-		s.locker.Unlock()
-		log.Printf("Let's begin with %d", s.current)
-		s.DispatchGameStatusNotifications()
+	if len(s.clients) == 2 {
+		s.game = NewGame()
+		s.DispatchGameWillStartNotifications()
 	}
 
 	<-c.leave
@@ -120,16 +111,9 @@ func (s *Server) Connect(in *proto.ConnectRequest, stream proto.Battleship_Conne
 }
 
 func (s *Server) Disconnect(ctx context.Context, in *proto.IdMessage) (*proto.EmptyMessage, error) {
-	id := in.Id
-	var c *Client
-	if s.blue != nil && s.blue.ID == id {
-		c = s.blue
-		s.blue = nil
-	} else if s.red != nil && s.red.ID == id {
-		c = s.red
-		s.red = nil
-	} else {
-		return nil, fmt.Errorf("Unknown id %d", id)
+	c, ok := s.clients[in.Id]
+	if !ok {
+		return nil, fmt.Errorf("Unknown id %d", in.Id)
 	}
 
 	s.locker.Lock()
@@ -137,15 +121,12 @@ func (s *Server) Disconnect(ctx context.Context, in *proto.IdMessage) (*proto.Em
 	s.locker.Unlock()
 	close(c.leave)
 	return &proto.EmptyMessage{}, nil
+
 }
 
 func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayReply, error) {
-	var c *Client
-	if s.blue.ID == in.Id {
-		c = s.blue
-	} else if s.red.ID == in.Id {
-		c = s.red
-	} else {
+	c, ok := s.clients[in.Id]
+	if !ok {
 		return nil, fmt.Errorf("Unknown id %d", in.Id)
 	}
 
@@ -165,40 +146,92 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 	}
 
 	s.locker.Lock()
-	if s.current == s.blue.ID {
-		s.current = s.red.ID
-	} else {
-		s.current = s.blue.ID
+	defer s.locker.Unlock()
+	for id := range s.clients {
+		if id != c.ID {
+			s.current = id
+		}
 	}
-	s.plies += 1
 
 	if err := s.DispatchGameStatusNotifications(); err != nil {
 		log.Printf("error dispatching game status notification: %v", err)
 	}
 
+	s.plies += 1
 	w := s.game.Winner()
-	if w == s.blue.ID {
-		log.Printf("Blue won in %d plies", s.plies)
-		s.game = NewGame()
-	} else if w == s.red.ID {
-		log.Printf("Red won in %d plies", s.plies)
-		s.game = NewGame()
+	for id, c := range s.clients {
+		if w == id {
+			log.Printf("%s (%d) won after %d plies", c.Name, c.ID, s.plies)
+		}
 	}
-	s.locker.Unlock()
+	if w != -1 {
+		s.game = nil
+		s.nGames += 1
+		if s.nGames < s.maxGames {
+			s.game = NewGame()
+			if err := s.DispatchGameWillStartNotifications(); err != nil {
+				return nil, err
+			}
+		} else {
+			for _, c := range s.clients {
+				c.leave <- struct{}{}
+			}
+			s.stopCh <- nil
+		}
+	}
 
 	return &proto.PlayReply{Tile: t, Status: proto.PlayReply_ACCEPTED}, nil
+}
+
+func (s *Server) Place(ctx context.Context, in *proto.PlaceRequest) (*proto.PlaceReply, error) {
+	c, ok := s.clients[in.Id]
+	if !ok {
+		return nil, fmt.Errorf("Unknown id %d", c.ID)
+	}
+
+	err := s.game.SavePlacement(c.ID, in.Ships)
+	if err != nil {
+		log.Printf("Error in ship placement: %v", err)
+		return &proto.PlaceReply{Valid: false}, nil
+	}
+
+	c.Placed = true
+	canStart := true
+	for _, c := range s.clients {
+		canStart = canStart && c.Placed
+	}
+	if canStart {
+		s.locker.Lock()
+		s.plies = 0
+		s.current = c.ID
+		s.locker.Unlock()
+		log.Printf("Let's begin with %d", s.current)
+		if err := s.DispatchGameStatusNotifications(); err != nil {
+			log.Printf("error dispatching game status notification: %v", err)
+		}
+	}
+
+	return &proto.PlaceReply{Valid: true}, nil
 }
 
 // ----------------------------------------------------------------------------
 // Send notifications
 
 func (s *Server) DispatchGameStatusNotifications() error {
-	if err := s.notifier.Notify(s.blue, s.GameStatusNotification(s.blue)); err != nil {
-		return err
+	for _, c := range s.clients {
+		if err := s.notifier.Notify(c, s.GameStatusNotification(c)); err != nil {
+			return err
+		}
 	}
 
-	if err := s.notifier.Notify(s.red, s.GameStatusNotification(s.red)); err != nil {
-		return err
+	return nil
+}
+
+func (s *Server) DispatchGameWillStartNotifications() error {
+	for _, c := range s.clients {
+		if err := s.notifier.Notify(c, s.GameWillStartNotification()); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -231,6 +264,14 @@ func (s *Server) GameStatusNotification(c *Client) *proto.Notification {
 				Play:   play,
 				Status: status,
 			},
+		},
+	}
+}
+
+func (s *Server) GameWillStartNotification() *proto.Notification {
+	return &proto.Notification{
+		Body: &proto.Notification_GameWillStart{
+			GameWillStart: &proto.EmptyMessage{},
 		},
 	}
 }

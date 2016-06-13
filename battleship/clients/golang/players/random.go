@@ -14,10 +14,6 @@ type Random struct {
 	n int
 }
 
-func (p *Random) Name() string {
-	return "Random"
-}
-
 func (p *Random) Play() int32 {
 	tiles := make([]int, 0, 100)
 	for i, t := range p.board {

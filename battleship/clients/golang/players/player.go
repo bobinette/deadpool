@@ -5,10 +5,6 @@ import (
 )
 
 type Player interface {
-	// Name returns the name of the player. This is used for tracking which
-	// AI is playing, so clear names are recommented
-	Name() string
-
 	// Play asks the player to play given each side of the board. It takes as
 	// argument the two sides and returns the position to fire on
 	Play() int32
