@@ -1,0 +1,89 @@
+% *****************************************************************************
+%
+% Author: Xavier Chassin
+% Project: Deadpool - Battleship
+%
+% Documents the algorithms used to play the battleship game
+%
+% *****************************************************************************
+
+\documentclass[a4paper]{article}
+% *****************************************************************************
+%
+% Packages and their options
+%
+% *****************************************************************************
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,margin=2.54cm]{geometry}  % Geometry of the pages
+\usepackage[nonumberlist]{glossaries}
+
+\makeglossary
+
+\begin{document}
+
+\title{Deadpool - Battleship}
+\author{Xavier Chassin}
+\maketitle
+
+%Term definitions
+\newglossaryentry{board_size}{name=$s$, description={Side length of the board}}
+
+%Print the glossary
+\printglossary[title=Notations]
+
+% ------------------------------
+% Document start
+% ------------------------------
+
+\section{Introduction} % (fold)
+\label{sec:introduction}
+
+This document presents the \emph{Deadpool Battleship} project. The focus is on the algorithms used to play a \emph{Battleship} game, as well as their implementation. Those will hopefully be implemented in different languages:
+\begin{itemize}
+\item Go
+\item Python
+\item And potentially others (C++, Haskell...)
+\end{itemize}
+
+% section introduction (end)
+
+\section{Playing randomly} % (fold)
+\label{sec:playing_randomly}
+
+To setup game and have a working implementation of the server, I needed a first player. The easiest, non completely trivial algorithm is the random one. It randomly picks a tile amongst all the tiles on which it has not fired yet.
+
+% section playing_randomly (end)
+
+\section{Scoring the tiles} % (fold)
+\label{sec:scoring_the_tiles}
+
+The random player is helpful to get the server started, however it is not exactly funny from a algorithm point of view. An idea of a battleship algorithm would be to score each tile and then fire on the tile with the highest score.
+
+\subsection{Distance based} % (fold)
+\label{sub:distance_based}
+
+To score a tile, we can use the distance from that tile the closest known (i.e. fired upon) tile. When playing a battleship game, if you fire on a tile that happens to only be the sea, then the adjacent tiles are less likely to be ship tiles.
+
+\subsubsection{Ship adjacent tiles} % (fold)
+\label{ssub:tiles_adjacent_to_a_ship}
+
+The obvious drawback of such a scoring function is that if we actually fire on a ship, the adjacent tiles will have a minimal score and hence will not be fired upon. To overcome this drawback, we set the score $s = \max_{t \in \mathcal{T}}s_t$ to the tiles adjacent to a ship.
+
+% subsubsection tiles_adjacent_to_a_ship (end)
+
+\subsubsection{A bit of randomness} % (fold)
+\label{ssub:a_bit_of_randomness}
+
+In order to avoid having tiles with the same score, we add a random ``error'' to the distance:
+\begin{equation*}
+s_t = \min_{t \in \mathcal(F)}d(t, t') + \epsilon
+\end{equation*}
+where $\epsilon \sim \mathcal{N}(0, 1)$. This also has the advantage of enhancing exploration of the board.
+
+% subsubsection a_bit_of_random (end)
+
+% subsection distance_based (end)
+
+% section scoring_the_tiles (end)
+
+\end{document}

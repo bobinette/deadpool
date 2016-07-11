@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/bobinette/deadpool/bandit"
 	"github.com/bobinette/deadpool/battleship"
 	"github.com/bobinette/deadpool/pingpong"
 )
@@ -27,6 +28,8 @@ func main() {
 
 	game := os.Args[len(os.Args)-1] // Game name is the last command line arg
 	switch game {
+	case "bandit":
+		s, stop = bandit.NewServer()
 	case "battleship":
 		s, stop = battleship.NewServer()
 	case "pingpong":
