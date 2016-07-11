@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package bandit;
+option go_package = "proto";
+
+service Bandit {
+  // Connects to the server to get an id to use in other messages
+  rpc Connect (EmptyMessage) returns (stream Notification) {}
+  // Disconnect from the server
+  rpc Disconnect (EmptyMessage) returns (EmptyMessage) {}
+
+  // Play
+  rpc Play (PlayRequest) returns (PlayReply) {}
+}
+
+// ---- Empty
+message EmptyMessage{}
+
+// ---- Notifications
+message Notification {
+	oneof msg {
+		ConnectReply connect_reply = 1;
+	}
+}
+
+message ConnectReply {
+	// The number of arms the bandit has in this game
+	int32 n_arms = 2;
+}
+
+// ---- Play
+message PlayRequest {
+	int32 arm = 2;
+}
+
+message PlayReply {
+	bool valid = 1;
+	double value = 2;
+}
