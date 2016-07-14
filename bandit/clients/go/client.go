@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "fmt"
 	"io"
 	"log"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/bobinette/deadpool/bandit/clients/go/players"
+	"github.com/bobinette/deadpool/bandit/components"
 	"github.com/bobinette/deadpool/bandit/proto"
 )
 
@@ -77,7 +77,8 @@ func (c *Client) Monitor(stream proto.Bandit_ConnectClient) error {
 }
 
 func (c *Client) Play() error {
-	for c.plies < c.nArms {
+	play := true
+	for play {
 		log.Printf("======== Ply %d ========", c.plies)
 
 		arm := c.player.Play()
@@ -88,9 +89,17 @@ func (c *Client) Play() error {
 			return err
 		}
 
-		log.Printf("Arm %d raised value %f", arm, rep.Value)
-
+		log.Printf("Arm %d raised value %f", arm, rep.Knowledge[arm])
+		log.Printf("Score: %f", rep.Score)
 		c.plies += 1
+		play = rep.RemainingPlies > 0
+
+		state := components.PlayerState{
+			Knowledge:      rep.Knowledge,
+			Score:          rep.Score,
+			RemainingPlies: rep.RemainingPlies,
+		}
+		c.player.Save(state)
 	}
 
 	return nil

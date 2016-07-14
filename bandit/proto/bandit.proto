@@ -35,5 +35,7 @@ message PlayRequest {
 
 message PlayReply {
 	bool valid = 1;
-	double value = 2;
+	repeated double knowledge = 2;
+	int32 remaining_plies = 3;
+	double score = 5;
 }

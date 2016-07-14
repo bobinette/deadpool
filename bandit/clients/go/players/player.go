@@ -1,6 +1,10 @@
 package players
 
+import (
+	"github.com/bobinette/deadpool/bandit/components"
+)
+
 type Player interface {
 	Play() int32
-	SaveValue(int32, float64)
+	Save(components.PlayerState)
 }

@@ -2,15 +2,17 @@ package bandit
 
 import (
 	"errors"
+	"log"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/bobinette/deadpool/bandit/components"
 	"github.com/bobinette/deadpool/bandit/proto"
 )
 
 type Server struct {
-	game *Game
+	game *GameManager
 	errc chan error
 }
 
@@ -38,7 +40,13 @@ func (s *Server) Connect(in *proto.EmptyMessage, stream proto.Bandit_ConnectServ
 		},
 	})
 
-	s.game = NewGame()
+	var n int32 = 100
+	var err error
+	s.game, err = NewGameManager(n)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	s.game.Start()
 	return nil
 }
@@ -53,19 +61,24 @@ func (s *Server) Play(ctx context.Context, in *proto.PlayRequest) (*proto.PlayRe
 		return nil, errors.New("Game not started or ended prematurely")
 	}
 
-	o := make(chan float64)
-	evt := InputEvent{
-		Input:  Input{Arm: in.Arm},
+	o := make(chan components.PlayerState)
+	evt := components.InputEvent{
+		Input:  components.Input{Arm: in.Arm},
 		Output: o,
 	}
 	s.game.InputChannel <- evt
 
-	var v float64
+	var ps components.PlayerState
 	select {
 	case <-ctx.Done():
 		return nil, errors.New("Timeout")
-	case v = <-o:
+	case ps = <-o:
 	}
 
-	return &proto.PlayReply{Valid: true, Value: v}, nil
+	return &proto.PlayReply{
+		Valid:          true,
+		Score:          ps.Score,
+		RemainingPlies: ps.RemainingPlies,
+		Knowledge:      ps.Knowledge,
+	}, nil
 }
