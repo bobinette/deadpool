@@ -92,7 +92,13 @@ func (dp *DP) Play(g Game) {
 		p = np
 	}
 
+	fmt.Println()
 	fmt.Println(p)
+
+	for !g.Over() {
+		s := g.State()
+		g.Play(Input{Cars: p[s]})
+	}
 }
 
 func expectedReward(s State, a int, v StateValue, params Parameters) float64 {
