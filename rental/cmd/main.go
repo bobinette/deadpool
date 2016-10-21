@@ -2,6 +2,9 @@ package main
 
 import (
 	"flag"
+	"math/rand"
+	"time"
+
 	"github.com/bobinette/deadpool/rental"
 )
 
@@ -10,7 +13,7 @@ func main() {
 	flag.Parse()
 
 	game := rental.NewGame()
-	p := rental.DP{}
+	p := rental.MC{Rand: rand.New(rand.NewSource(time.Now().UnixNano()))}
 
 	p.Play(game)
 }

@@ -2,6 +2,8 @@ package rental
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 )
 
 type Input struct {
@@ -38,11 +40,12 @@ type Game struct {
 func NewGame() Game {
 	m := 20
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return Game{
 		Poisson: NewPoisson(),
 		state: State{
-			CarsAt1: 0,
-			CarsAt2: 20,
+			CarsAt1: r.Intn(m + 1),
+			CarsAt2: r.Intn(m + 1),
 		},
 		Params: Parameters{
 			CustomerAt1: 3,
@@ -58,9 +61,16 @@ func NewGame() Game {
 	}
 }
 
-func (g *Game) State() State { return g.state }
+func (g *Game) Reset() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	g.state = State{
+		CarsAt1: r.Intn(g.Params.MaxCars + 1),
+		CarsAt2: r.Intn(g.Params.MaxCars + 1),
+	}
+}
 
-func (g *Game) Over() bool { return g.outOfBusiness }
+func (g Game) State() State { return g.state }
+func (g Game) Over() bool   { return g.outOfBusiness }
 
 func (g *Game) Play(i Input) State {
 	// 0. Make sure the input is valid

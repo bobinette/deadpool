@@ -1,6 +1,7 @@
 package rental
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -32,6 +33,33 @@ func (p Policy) At(x, y int) string {
 
 func (p Policy) String() string {
 	return Print2D(p)
+}
+
+func (p Policy) MarshalJSON() ([]byte, error) {
+	m := make(map[int]map[int]int)
+
+	for s, a := range p {
+		if _, ok := m[s.CarsAt1]; !ok {
+			m[s.CarsAt1] = make(map[int]int)
+		}
+		m[s.CarsAt1][s.CarsAt2] = a
+	}
+	return json.Marshal(m)
+}
+
+func (p Policy) UnmarshalJSON(data []byte) error {
+	var m map[int]map[int]int
+	err := json.Unmarshal(data, m)
+	if err != nil {
+		return err
+	}
+
+	for c1 := range m {
+		for c2, a := range m[c1] {
+			p[State{c1, c2}] = a
+		}
+	}
+	return nil
 }
 
 type StateValue map[State]float64
