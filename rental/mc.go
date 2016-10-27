@@ -32,7 +32,7 @@ func (mc MC) Play(g Game) {
 
 	q := make(ActionValue)
 	start := time.Now()
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 50000; i++ {
 		mc.simulate(g.Params, r, p)
 
 		for s := range r {
@@ -57,7 +57,13 @@ func (mc MC) Play(g Game) {
 			}
 			p[s] = ps
 		}
-		fmt.Print("\r", i, "\t", time.Since(start))
+		fmt.Print("\r", i, "\t", time.Since(start), "\t", len(r))
+
+		if i%1000 == 0 {
+			fmt.Println()
+			fmt.Println()
+			fmt.Println(p)
+		}
 	}
 
 	fmt.Println()
@@ -69,7 +75,7 @@ func (mc MC) simulate(params Parameters, r Returns, p Policy) {
 	rewards := make(map[State]map[int]float64)
 	poisson := Poisson{Rand: mc.Rand}
 
-	// Play a full episode - every visit MC
+	// Play a full episode
 	gameOver := false
 
 	// Randomly select first state and first action
@@ -77,23 +83,38 @@ func (mc MC) simulate(params Parameters, r Returns, p Policy) {
 		CarsAt1: mc.Rand.Intn(params.MaxCars + 1),
 		CarsAt2: mc.Rand.Intn(params.MaxCars + 1),
 	}
+	ns := State{
+		CarsAt1: s.CarsAt1,
+		CarsAt2: s.CarsAt2,
+	}
 	a := mc.Rand.Intn(params.MaxMoves*2+1) - params.MaxMoves
+
+	h := make([]struct {
+		State  State
+		Action int
+	}, 0)
 	for !gameOver {
 		// Play
+		a = bounded(-s.CarsAt2, s.CarsAt1, a)
+		ns.CarsAt1 = min(s.CarsAt1-a, params.MaxCars)
+		ns.CarsAt2 = min(s.CarsAt2+a, params.MaxCars)
+
+		h = append(h, struct {
+			State  State
+			Action int
+		}{s, a})
+
 		reward := -2 * math.Abs(float64(a))
 		c1 := poisson.Draw(params.CustomerAt1)
 		r1 := poisson.Draw(params.ReturnAt1)
 
 		c2 := poisson.Draw(params.CustomerAt2)
 		r2 := poisson.Draw(params.ReturnAt2)
-		if c1 > s.CarsAt1 || c2 > s.CarsAt2 {
+		if c1 > ns.CarsAt1 || c2 > ns.CarsAt2 {
 			gameOver = true
 		}
 
-		reward += 10 * float64(min(c1, s.CarsAt1)+min(c2, s.CarsAt2))
-
-		s.CarsAt1 = bounded(0, params.MaxCars, s.CarsAt1-a-c1+r1)
-		s.CarsAt2 = bounded(0, params.MaxCars, s.CarsAt2+a-c2+r2)
+		reward += 10 * float64(min(c1, ns.CarsAt1)+min(c2, ns.CarsAt2))
 
 		if _, ok := rewards[s]; !ok {
 			rewards[s] = make(map[int]float64)
@@ -106,13 +127,17 @@ func (mc MC) simulate(params Parameters, r Returns, p Policy) {
 
 		// Σ γ^k * Rk = R0 + γ(R1 + γ(R2 + ...))
 		for os := range rewards {
-			for oa := range rewards[s] {
+			for oa := range rewards[os] {
 				rewards[os][oa] = γ*rewards[os][oa] + reward
 			}
 		}
 
 		// Select next action following policy
-		a = p[s]
+		ns.CarsAt1 = bounded(0, params.MaxCars, ns.CarsAt1-c1+r1)
+		ns.CarsAt2 = bounded(0, params.MaxCars, ns.CarsAt2-c2+r2)
+		a = p[ns]
+		s.CarsAt1 = ns.CarsAt1
+		s.CarsAt2 = ns.CarsAt2
 	}
 
 	// Add episode returns to the list of all the returns (per (state, action))
